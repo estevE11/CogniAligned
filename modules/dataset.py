@@ -5,10 +5,11 @@ import torch
 import os
 from sklearn.model_selection import KFold
 
+# Default paths (will be overridden by config)
 root_text_path = '/dataset/diagnosis/train/text/'
 root_audio_path = '/dataset/diagnosis/train/audio/'
-
 csv_labels_path = '/dataset/diagnosis/train/adresso-train-mmse-scores.csv'
+splits_path = '/dataset/diagnosis/train/splits/'
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 max_length_wav2vec = 4000
@@ -43,8 +44,9 @@ name_mapping_audio = {
 
 
 def read_CSV(config):
-    # Read CSV with labels
-    labels_pd = pd.read_csv(csv_labels_path)
+    # Read CSV with labels (use config path if available, otherwise use default)
+    labels_path = config.data.csv_labels_path if hasattr(config, 'data') else csv_labels_path
+    labels_pd = pd.read_csv(labels_path)
 
     uids = []
     features = []
@@ -52,21 +54,24 @@ def read_CSV(config):
 
     pauses_data = '_pauses' if config.model.pauses else ''
     audio_data = '_' + name_mapping_audio[config.model.audio_model] if config.model.audio_model != '' else ''
-
+    
+    # Use config paths if available, otherwise use defaults
+    text_path = config.data.root_text_path if hasattr(config, 'data') else root_text_path
 
     for index, row in labels_pd.iterrows():
         uids.append(row['adressfname'])
         labels.append(torch.tensor(0 if row['dx'] == "cn" else 1).to(device).float())
 
-
+        text_embeddings_path = None
+        audio_embeddings_path = None
 
         if config.model.textual_model != '':
-            text_embeddings_path = os.path.join(root_text_path, row['dx'], row['adressfname'] + 
+            text_embeddings_path = os.path.join(text_path, row['dx'], row['adressfname'] + 
                                                     name_mapping_text[config.model.textual_model] + pauses_data + '.pt')
             
         if config.model.audio_model != '':
             textual_data = name_mapping_text[config.model.textual_model] if config.model.textual_model != '' else 'distil'
-            audio_embeddings_path = os.path.join(root_text_path, row['dx'], row['adressfname'] + textual_data 
+            audio_embeddings_path = os.path.join(text_path, row['dx'], row['adressfname'] + textual_data 
                                                  + pauses_data + audio_data + '.pt')
         
         if config.model.multimodality:
@@ -84,7 +89,10 @@ def read_CSV(config):
 def get_dataloaders(config, kfold_number = 0):
 
     uids, features, labels = read_CSV(config)
-    validation_split = np.load('/dataset/diagnosis/train/splits/val_uids' + str(kfold_number) + '.npy')
+    
+    # Use config path if available, otherwise use default
+    splits_dir = config.data.splits_path if hasattr(config, 'data') else splits_path
+    validation_split = np.load(os.path.join(splits_dir, f'val_uids{kfold_number}.npy'))
 
     batch_size=config.train.batch_size
     # Split those lists into training and validation
@@ -115,9 +123,12 @@ def get_dataloaders(config, kfold_number = 0):
 
     return train_dataloader, validation_dataloader
 
-def set_splits():
-
-    labels_pd = pd.read_csv(csv_labels_path)
+def set_splits(config=None):
+    # Use config paths if provided
+    labels_path = config.data.csv_labels_path if (config and hasattr(config, 'data')) else csv_labels_path
+    splits_dir = config.data.splits_path if (config and hasattr(config, 'data')) else splits_path
+    
+    labels_pd = pd.read_csv(labels_path)
     uids = []
 
     for index, row in labels_pd.iterrows():
@@ -126,21 +137,26 @@ def set_splits():
     # Split the uids into 5 folds with kfold from sklearn
     kfold = KFold(n_splits=5, shuffle=True, random_state=42)
 
+    os.makedirs(splits_dir, exist_ok=True)
     for i, (train_index, test_index) in enumerate(kfold.split(uids)):
         print("TRAIN:", train_index, "TEST:", test_index)
-        np.save('/dataset/diagnosis/train/splits/train_uids' + str(i), np.array(uids)[train_index])
-        np.save('/dataset/diagnosis/train/splits/val_uids' + str(i), np.array(uids)[test_index])
+        np.save(os.path.join(splits_dir, f'train_uids{i}'), np.array(uids)[train_index])
+        np.save(os.path.join(splits_dir, f'val_uids{i}'), np.array(uids)[test_index])
 
-def get_splits_stats():
-    labels_pd = pd.read_csv(csv_labels_path)
+def get_splits_stats(config=None):
+    # Use config paths if provided
+    labels_path = config.data.csv_labels_path if (config and hasattr(config, 'data')) else csv_labels_path
+    splits_dir = config.data.splits_path if (config and hasattr(config, 'data')) else splits_path
+    
+    labels_pd = pd.read_csv(labels_path)
     uids = []
 
     for index, row in labels_pd.iterrows():
         uids.append(row['adressfname'])
 
     for i in range(5):
-        training_split = np.load('/dataset/diagnosis/train/splits/train_uids' + str(i) + '.npy')
-        validation_split = np.load('/dataset/diagnosis/train/splits/val_uids' + str(i) + '.npy')
+        training_split = np.load(os.path.join(splits_dir, f'train_uids{i}.npy'))
+        validation_split = np.load(os.path.join(splits_dir, f'val_uids{i}.npy'))
         n_cn_train = 0
         n_ad_train = 0
         n_cn_val = 0

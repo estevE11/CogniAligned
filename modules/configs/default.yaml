@@ -22,4 +22,16 @@ model:
   pauses: False
   fusion: 'cross'
 
+data:
+  train_dir: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/processed_data/diagnosis/train"
+  root_text_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/processed_data/diagnosis/train/text/"
+  root_audio_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/processed_data/diagnosis/train/audio/"
+  csv_labels_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/processed_data/diagnosis/train/adresso-train-mmse-scores.csv"
+  splits_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/processed_data/diagnosis/train/splits/"
+
+wandb:
+  project: "CogniAligned"
+  entity: ""  # Optional W&B entity/team name
+  mode: "online"  # online, offline, disabled
+
 model_name: ''

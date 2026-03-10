@@ -81,9 +81,13 @@ def get_metrics_classification(true_labels, pred_labels):
     return accuracy, f1, recall, precision
 
 def train(model, train_dataloader, valid_dataloader, lossfn, optimizer, lr_scheduler, num_epochs, model_name, early_stopping, early_stopping_patience, cross_val=False, num_cross_val=0):
-    """Train the model with early stopping."""
-    wandb.init(project="WordLevelFusion", config={"epochs": num_epochs})
-    wandb.watch(model)
+    """Train the model with early stopping.
+    
+    Note: wandb.init() should be called before calling this function.
+    This function will use the existing wandb run.
+    """
+    # wandb.init is now called in main.py before training
+    # wandb.watch(model) is also called in main.py
     
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -133,9 +137,22 @@ def train(model, train_dataloader, valid_dataloader, lossfn, optimizer, lr_sched
             accuracy, f1, recall, precision = get_metrics_classification(total_true, total_pred)
             avg_loss = total_loss / len(train_dataloader)
             
+            # Get current learning rate
+            current_lr = optimizer.param_groups[0]['lr']
+            
             log.write(f'Training completed in: {time.time()} seconds\n')
             log.write(f'Loss: {avg_loss}\nAccuracy: {accuracy}\nF1 Score: {f1}\nRecall: {recall}\nPrecision: {precision}\n')
-            wandb.log({"train_loss": avg_loss, "train_ACC": accuracy, "train_F1": f1})
+            
+            # Enhanced W&B logging with all metrics per epoch
+            wandb.log({
+                "epoch": epoch + 1,
+                "train/loss": avg_loss,
+                "train/accuracy": accuracy,
+                "train/f1": f1,
+                "train/recall": recall,
+                "train/precision": precision,
+                "learning_rate": current_lr,
+            })
             
             validation_value, rest_values = evaluation(model, valid_dataloader, lossfn, log)
             
@@ -156,6 +173,15 @@ def train(model, train_dataloader, valid_dataloader, lossfn, optimizer, lr_sched
         log.write(f'Best validation accuracy: {best_value}\n')
         log.write(f'Best validation F1: {rest_best_values[0]}\nBest validation Recall: {rest_best_values[1]}\nBest validation Precision: {rest_best_values[2]}\n')
         log.write(f'Best epoch: {best_epoch}\n')
+    
+    # Log best metrics to W&B
+    wandb.log({
+        "best/val_accuracy": best_value,
+        "best/val_f1": rest_best_values[0],
+        "best/val_recall": rest_best_values[1],
+        "best/val_precision": rest_best_values[2],
+        "best_epoch": best_epoch,
+    })
     
     model.load_state_dict(best_weights)
     return model, best_value, rest_best_values
@@ -191,7 +217,24 @@ def evaluation(model, dataloader, lossfn, log, test=False):
     avg_loss = total_loss / len(dataloader)
     
     log.write(f'Loss: {avg_loss}\nAccuracy: {accuracy}\nF1 Score: {f1}\nRecall: {recall}\nPrecision: {precision}\n')
-    wandb.log({"test_loss": avg_loss, "test_UAR": accuracy, "test_F1": f1} if test else {"validation_loss": avg_loss, "validation_ACC": accuracy, "validation_F1": f1})
+    
+    # Enhanced W&B logging with all metrics
+    if test:
+        wandb.log({
+            "test/loss": avg_loss,
+            "test/accuracy": accuracy,
+            "test/f1": f1,
+            "test/recall": recall,
+            "test/precision": precision,
+        })
+    else:
+        wandb.log({
+            "val/loss": avg_loss,
+            "val/accuracy": accuracy,
+            "val/f1": f1,
+            "val/recall": recall,
+            "val/precision": precision,
+        })
     
     return accuracy, [f1, recall, precision]
 
