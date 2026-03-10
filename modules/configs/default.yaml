@@ -23,11 +23,11 @@ model:
   fusion: 'cross'
 
 data:
-  train_dir: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/processed_data/diagnosis/train"
-  root_text_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/processed_data/diagnosis/train/text/"
-  root_audio_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/processed_data/diagnosis/train/audio/"
-  csv_labels_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/processed_data/diagnosis/train/adresso-train-mmse-scores.csv"
-  splits_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/processed_data/diagnosis/train/splits/"
+  train_dir: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train"
+  root_text_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/text/"
+  root_audio_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/audio/"
+  csv_labels_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/adresso-train-mmse-scores.csv"
+  splits_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/splits/"
 
 wandb:
   project: "CogniAligned"

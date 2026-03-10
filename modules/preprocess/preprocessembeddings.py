@@ -378,4 +378,5 @@ def preprocess_text():
         print(f"CORRECTLY PROCESSED ALL AUDIOS")
         print(f"Completed audios: {completed_audios}")
 
-preprocess_text()
+if __name__ == '__main__':
+    preprocess_text()

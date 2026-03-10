@@ -99,4 +99,5 @@ def preprocess_whisper():
 
     df.to_csv(textual_data, index=False)
 
-preprocess_whisper()
+if __name__ == '__main__':
+    preprocess_whisper()
