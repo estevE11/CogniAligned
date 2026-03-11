@@ -65,6 +65,37 @@ preprocessembeddings.root_path = AUDIO_PATH
 preprocessembeddings.root_text_path = TEXT_OUTPUT_PATH
 preprocessembeddings.textual_data = f"{TEXT_OUTPUT_PATH.rstrip('/')}/text_transcriptions.csv"
 
+# Set default models if not configured (matching default.yaml)
+preprocessembeddings.textual_model = 'distil'  # distilbert
+preprocessembeddings.audio_model = 'egemaps'   # egemaps features
+preprocessembeddings.pauses = False
+
+# Reinitialize model variables after setting the model types
+preprocessembeddings.textual_model_data = preprocessembeddings.name_mapping_text.get(preprocessembeddings.textual_model, '')
+preprocessembeddings.audio_model_data = '_' + preprocessembeddings.name_mapping_audio.get(preprocessembeddings.audio_model, '')
+preprocessembeddings.pauses_data = '_pauses' if preprocessembeddings.pauses else ''
+
+# Load the models
+from transformers import AutoTokenizer, DistilBertModel
+import torch
+device = torch.device("cpu")  # Force CPU
+
+print(f"Loading {preprocessembeddings.textual_model} text model...")
+preprocessembeddings.tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
+preprocessembeddings.model = DistilBertModel.from_pretrained('distilbert-base-uncased').to(device)
+preprocessembeddings.model.eval()
+
+# Load audio model
+if preprocessembeddings.audio_model == 'egemaps':
+    import opensmile
+    preprocessembeddings.smile = opensmile.Smile(
+        feature_set=opensmile.FeatureSet.eGeMAPSv02,
+        feature_level=opensmile.FeatureLevel.Functionals,
+    )
+    preprocessembeddings.segment_length = 10
+
+print(f"Models loaded successfully!")
+
 # Run embeddings preprocessing
 preprocessembeddings.preprocess_text()
 
