@@ -498,14 +498,21 @@ class MambaFusionEncoder(nn.Module):
         self.fusion = config.fusion
         self.config = config
 
-        # Set hidden size based on fusion method
-        hidden_size = config.hidden_size * 2 if 'concat' in self.fusion else config.hidden_size
+        # Set input size based on fusion method
+        input_size = config.hidden_size * 2 if 'concat' in self.fusion else config.hidden_size
+        
+        # Project down to reduce Mamba size and prevent overfitting
+        self.mamba_hidden_size = 128
+        self.input_proj = nn.Sequential(
+            nn.Linear(input_size, self.mamba_hidden_size),
+            nn.Dropout(config.dropout)
+        )
 
         if 'mel' in self.model_name or 'egemaps' in self.model_name:
             self.mel_extractor = ResNetAudio(in_channels=1, out_channels=config.hidden_size, dropout=config.dropout)
         
         mamba_config = MambaConfig(
-            hidden_size=hidden_size,
+            hidden_size=self.mamba_hidden_size,
             state_size=16,
             num_hidden_layers=config.n_layers,
             expand=2,
@@ -513,12 +520,14 @@ class MambaFusionEncoder(nn.Module):
         self.encoder = MambaModel(mamba_config)
 
         self.pooling = config.pooling
+        self.dropout = nn.Dropout(config.dropout)
         
         self.classifier = nn.Sequential(
-            nn.LayerNorm(hidden_size),
+            nn.LayerNorm(self.mamba_hidden_size),
             nn.Dropout(config.dropout),
-            nn.Linear(hidden_size, config.hidden_mlp_size),
+            nn.Linear(self.mamba_hidden_size, config.hidden_mlp_size),
             nn.ReLU(),
+            nn.Dropout(config.dropout),
             nn.Linear(config.hidden_mlp_size, config.num_classes)
         )
         
@@ -549,8 +558,12 @@ class MambaFusionEncoder(nn.Module):
             features = src * memory
         else:
             features = src + memory
+            
+        # Project and apply dropout before Mamba
+        features = self.input_proj(features)
         
         features = self.encoder(inputs_embeds=features).last_hidden_state
+        features = self.dropout(features)
                 
         # Pooling strategy
         if self.pooling == 'mean':

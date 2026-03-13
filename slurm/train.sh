@@ -8,7 +8,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks=1
 #SBATCH --time=08:00:00
-#SBATCH --nodelist=veuc11
+#SBATCH --nodelist=veuc10
 
 set -euo pipefail
 
