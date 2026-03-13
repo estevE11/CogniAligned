@@ -17,13 +17,17 @@ diagnosis = ['ad', 'cn']
 textual_data = '/dataset/diagnosis/train/text_transcriptions.csv'
 
 
+test_mode = False
+
 def preprocess_whisper():
 
     df = pd.DataFrame(columns=['uid', 'diagno', 'transcription', 'transcription_pause', 'probablities'])
 
-    for diagno in diagnosis:
+    current_diagnosis = [''] if test_mode else diagnosis
 
-        diagno_path = os.path.join(root_path, diagno)
+    for diagno in current_diagnosis:
+
+        diagno_path = os.path.join(root_path, diagno) if diagno else root_path
 
         for file in os.listdir(diagno_path):
 

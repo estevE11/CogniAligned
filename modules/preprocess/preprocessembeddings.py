@@ -16,68 +16,80 @@ textual_model = ''
 audio_model = ''
 pauses = False
 
-pauses_data = '_pauses' if pauses else ''
-name_mapping_text = {
-    'bert': '',
-    'distil': 'distil',
-    'roberta': 'roberta',
-    'mistral': 'mistral',
-    'qwen': 'qwen',
-    'stella': 'stella'
-}
-textual_model_data = name_mapping_text.get(textual_model, '')
-name_mapping_audio = {
-    'wav2vec2': 'audio',
-    'egemaps': 'egemaps',
-    'mel': 'mel'
-}
-audio_model_data = '_' + name_mapping_audio.get(audio_model, '')
-
-if textual_model == 'bert':
-    tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-    model = BertModel.from_pretrained("bert-base-uncased").to(device)
-elif textual_model == 'roberta':
-    tokenizer = AutoTokenizer.from_pretrained("roberta-base")
-    model = RobertaModel.from_pretrained("roberta-base").to(device)
-elif textual_model == 'distilbert':
-    tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
-    model = DistilBertModel.from_pretrained('distilbert-base-uncased').to(device)
-elif textual_model == 'stella':
-    tokenizer = AutoTokenizer.from_pretrained("NovaSearch/stella_en_1.5B_v5", trust_remote_code=True)
-    model = AutoModel.from_pretrained("NovaSearch/stella_en_1.5B_v5", trust_remote_code=True)
-elif textual_model == 'mistral':
-    tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1", use_auth_token=True)
-    tokenizer.pad_token = tokenizer.eos_token
-    # Need Access Token
-    model = AutoModel.from_pretrained("mistralai/Mistral-7B-v0.1", use_auth_token=True)
-elif textual_model == 'qwen':
-    tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-7B")
-    # Need Access Token
-    model = AutoModel.from_pretrained("Qwen/Qwen2.5-7B")
-
-model.eval()
-
-if audio_model == 'wav2vec2':
-    processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
-    wav2vec_model = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base-960h").to(device)
-    segment_length = 50
-elif audio_model == 'egemaps':
-    smile = opensmile.Smile(
-        feature_set=opensmile.FeatureSet.eGeMAPSv02,
-        feature_level=opensmile.FeatureLevel.Functionals,
-    )
-    segment_length = 10
-else:
-    segment_length = 50
-
 root_path = '/dataset/diagnosis/train/audio/'
 root_text_path = '/dataset/diagnosis/train/text/'
 
 textual_data = '/dataset/diagnosis/train/text_transcriptions.csv'
 max_length = 200
 
+# Global variables for models
+tokenizer = None
+model = None
+processor = None
+wav2vec_model = None
+smile = None
+
+def init_models():
+    global tokenizer, model, processor, wav2vec_model, smile, segment_length
+    
+    if textual_model == 'bert':
+        tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+        model = BertModel.from_pretrained("bert-base-uncased").to(device)
+    elif textual_model == 'roberta':
+        tokenizer = AutoTokenizer.from_pretrained("roberta-base")
+        model = RobertaModel.from_pretrained("roberta-base").to(device)
+    elif textual_model == 'distil' or textual_model == 'distilbert':
+        tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
+        model = DistilBertModel.from_pretrained('distilbert-base-uncased').to(device)
+    elif textual_model == 'stella':
+        tokenizer = AutoTokenizer.from_pretrained("NovaSearch/stella_en_1.5B_v5", trust_remote_code=True)
+        model = AutoModel.from_pretrained("NovaSearch/stella_en_1.5B_v5", trust_remote_code=True)
+    elif textual_model == 'mistral':
+        tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1", use_auth_token=True)
+        tokenizer.pad_token = tokenizer.eos_token
+        model = AutoModel.from_pretrained("mistralai/Mistral-7B-v0.1", use_auth_token=True)
+    elif textual_model == 'qwen':
+        tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-7B")
+        model = AutoModel.from_pretrained("Qwen/Qwen2.5-7B")
+    else:
+        model = None
+
+    if model is not None:
+        model.eval()
+
+    if audio_model == 'wav2vec2':
+        processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
+        wav2vec_model = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base-960h").to(device)
+        segment_length = 50
+    elif audio_model == 'egemaps':
+        smile = opensmile.Smile(
+            feature_set=opensmile.FeatureSet.eGeMAPSv02,
+            feature_level=opensmile.FeatureLevel.Functionals,
+        )
+        segment_length = 10
+    else:
+        segment_length = 50
 
 def preprocess_text():
+    init_models()
+    
+    pauses_data = '_pauses' if pauses else ''
+    name_mapping_text = {
+        'bert': '',
+        'distil': 'distil',
+        'distilbert': 'distil',
+        'roberta': 'roberta',
+        'mistral': 'mistral',
+        'qwen': 'qwen',
+        'stella': 'stella'
+    }
+    textual_model_data = name_mapping_text.get(textual_model, '')
+    name_mapping_audio = {
+        'wav2vec2': 'audio',
+        'egemaps': 'egemaps',
+        'mel': 'mel'
+    }
+    audio_model_data = '_' + name_mapping_audio.get(audio_model, '')
 
     # Read textual data from CSV
     df = pd.read_csv(textual_data, encoding='utf-8')
@@ -92,10 +104,11 @@ def preprocess_text():
 
     # Iteate over each row
     for index, row in df.iterrows():
+        diagno_str = str(row['diagno']) if pd.notna(row['diagno']) else ''
 
         print(f"------------------------------------------")
         print(f"------------------------------------------")
-        print(f"Processing {row['uid']}, {row['diagno']}")
+        print(f"Processing {row['uid']}, {diagno_str}")
 
 
         # Get the transcription
@@ -116,10 +129,13 @@ def preprocess_text():
 
         # Save the embeddings
         last_hidden_states_text = outputs_text.last_hidden_state.squeeze(0).cpu()
-        torch.save(last_hidden_states_text, os.path.join(root_text_path, row['diagno'], row['uid'] + textual_model_data + pauses_data + '.pt'))
+        save_dir = os.path.join(root_text_path, diagno_str) if diagno_str else root_text_path
+        os.makedirs(save_dir, exist_ok=True)
+        torch.save(last_hidden_states_text, os.path.join(save_dir, row['uid'] + textual_model_data + pauses_data + '.pt'))
 
         if audio_model != '':
-            audio_path = os.path.join(root_path, row['diagno'], row['uid'] + '.wav')
+            audio_dir = os.path.join(root_path, diagno_str) if diagno_str else root_path
+            audio_path = os.path.join(audio_dir, row['uid'] + '.wav')
 
             if audio_model == 'wav2vec2':
                 wave_form, sample_rate = torchaudio.load(audio_path)
@@ -141,6 +157,8 @@ def preprocess_text():
 
                 if torch.isnan(last_hidden_states_audio).any():
                     last_hidden_states_audio = torch.nan_to_num(last_hidden_states_audio, nan=0.0)
+                
+                features_audio = last_hidden_states_audio
             elif audio_model == 'egemaps':
                 y, sr = librosa.load(audio_path)
                 frame_size = 0.1
@@ -160,8 +178,10 @@ def preprocess_text():
                 processed_audio_tensor = torch.zeros((max_length, features_audio.shape[1]))
 
                 if torch.isnan(features_audio).any():
-                    print(f"ERROR BEFORE in {row['diagno']}, {row['uid']}: NaN values in features_audio")
+                    print(f"ERROR BEFORE in {diagno_str}, {row['uid']}: NaN values in features_audio")
                     features_audio = torch.nan_to_num(features_audio, nan=0.0)
+                
+                last_hidden_states_audio = features_audio
             elif audio_model == 'mel':
                 y, sr = librosa.load(audio_path)
 
@@ -177,6 +197,8 @@ def preprocess_text():
 
                 if torch.isnan(features_audio).any():
                     features_audio = torch.nan_to_num(features_audio, nan=0.0)
+                
+                last_hidden_states_audio = features_audio
         
             processed_audio_tensor[0] = features_audio.mean(dim=0)
 
@@ -228,7 +250,7 @@ def preprocess_text():
             if current_word:
                 word_mapping.append((current_word, current_tokens, current_token_ids))
 
-            word_level_timestamp_path = os.path.join(root_text_path, row['diagno'], row['uid'] + '.csv')
+            word_level_timestamp_path = os.path.join(save_dir, row['uid'] + '.csv')
 
             # Read the word level timestamps
             df_word_level = pd.read_csv(word_level_timestamp_path)
@@ -360,16 +382,16 @@ def preprocess_text():
             total_tokens = torch.sum(inputs_text['attention_mask'][0]).item()
             print(f"Total tokens: {total_tokens}")
             if n_audio_segments + 2 != total_tokens:
-                print(f"ERROR in {row['diagno']}, {row['uid']}: Number of audio segments ({n_audio_segments}) does not match the number of tokens ({total_tokens})")
+                print(f"ERROR in {diagno_str}, {row['uid']}: Number of audio segments ({n_audio_segments}) does not match the number of tokens ({total_tokens})")
                 print(f"Completed audios: {completed_audios}")
-                return -1
+                continue
 
             if torch.isnan(processed_audio_tensor).any():
-                print(f"ERROR in {row['diagno']}, {row['uid']}: NaN values in processed_audio_tensor")
+                print(f"ERROR in {diagno_str}, {row['uid']}: NaN values in processed_audio_tensor")
                 print(f"Completed audios: {completed_audios}")
-                return -1
+                continue
             
-            torch.save(processed_audio_tensor, os.path.join(root_text_path, row['diagno'], row['uid'] + textual_model_data + pauses_data + audio_model_data + '.pt'))
+            torch.save(processed_audio_tensor, os.path.join(save_dir, row['uid'] + textual_model_data + pauses_data + audio_model_data + '.pt'))
 
             
             completed_audios += 1

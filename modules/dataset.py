@@ -59,9 +59,6 @@ def read_CSV(config):
     text_path = config.data.root_text_path if hasattr(config, 'data') else root_text_path
 
     for index, row in labels_pd.iterrows():
-        uids.append(row['adressfname'])
-        labels.append(torch.tensor(0 if row['dx'] == "cn" else 1).to(device).float())
-
         text_embeddings_path = None
         audio_embeddings_path = None
 
@@ -74,13 +71,27 @@ def read_CSV(config):
             audio_embeddings_path = os.path.join(text_path, row['dx'], row['adressfname'] + textual_data 
                                                  + pauses_data + audio_data + '.pt')
         
+        # Check if files exist (some might have failed preprocessing)
         if config.model.multimodality:
-            features.append((torch.load(audio_embeddings_path).to(device), torch.load(text_embeddings_path).to(device)))
+            if os.path.exists(audio_embeddings_path) and os.path.exists(text_embeddings_path):
+                features.append((torch.load(audio_embeddings_path).to(device), torch.load(text_embeddings_path).to(device)))
+                uids.append(row['adressfname'])
+                labels.append(torch.tensor(0 if row['dx'] == "cn" else 1).to(device).float())
+            else:
+                print(f"Skipping missing files for {row['adressfname']}")
+                continue
         else:
-            if config.model.textual_model != '':
+            if config.model.textual_model != '' and os.path.exists(text_embeddings_path):
                 features.append(torch.load(text_embeddings_path).to(device))
-            elif config.model.audio_model != '':
+                uids.append(row['adressfname'])
+                labels.append(torch.tensor(0 if row['dx'] == "cn" else 1).to(device).float())
+            elif config.model.audio_model != '' and os.path.exists(audio_embeddings_path):
                 features.append(torch.load(audio_embeddings_path).to(device))
+                uids.append(row['adressfname'])
+                labels.append(torch.tensor(0 if row['dx'] == "cn" else 1).to(device).float())
+            else:
+                print(f"Skipping missing files for {row['adressfname']}")
+                continue
 
     return uids, features, labels
 

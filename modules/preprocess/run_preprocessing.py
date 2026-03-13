@@ -6,6 +6,11 @@ This avoids modifying the original preprocessing scripts.
 
 import os
 import sys
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--test', action='store_true', help='Run preprocessing on the test set instead of train set')
+args = parser.parse_args()
 
 # Set paths before importing preprocessing modules
 ADRESSO_ROOT = os.environ.get(
@@ -13,11 +18,17 @@ ADRESSO_ROOT = os.environ.get(
     '/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21'
 )
 
-# Configure paths
-AUDIO_PATH = f"{ADRESSO_ROOT}/diagnosis/train/audio/"
-TEXT_OUTPUT_PATH = f"{ADRESSO_ROOT}/diagnosis/train/text/"
-CSV_LABELS_PATH = f"{ADRESSO_ROOT}/diagnosis/train/adresso-train-mmse-scores.csv"
-SPLITS_PATH = f"{ADRESSO_ROOT}/diagnosis/train/splits/"
+if args.test:
+    AUDIO_PATH = f"{ADRESSO_ROOT}/diagnosis/test-dist/audio/"
+    TEXT_OUTPUT_PATH = f"{ADRESSO_ROOT}/diagnosis/test-dist/text/"
+    # test_results_task1.csv only has ID, no dx. We'll use it to get the filenames
+    CSV_LABELS_PATH = f"{ADRESSO_ROOT}/diagnosis/test-dist/test_results_task1.csv"
+    SPLITS_PATH = f"{ADRESSO_ROOT}/diagnosis/test-dist/splits/"
+else:
+    AUDIO_PATH = f"{ADRESSO_ROOT}/diagnosis/train/audio/"
+    TEXT_OUTPUT_PATH = f"{ADRESSO_ROOT}/diagnosis/train/text/"
+    CSV_LABELS_PATH = f"{ADRESSO_ROOT}/diagnosis/train/adresso-train-mmse-scores.csv"
+    SPLITS_PATH = f"{ADRESSO_ROOT}/diagnosis/train/splits/"
 
 print(f"Using ADReSSo Root: {ADRESSO_ROOT}")
 print(f"Audio Path: {AUDIO_PATH}")
@@ -43,17 +54,32 @@ print("\n" + "="*60)
 print("Starting Preprocessing")
 print("="*60 + "\n")
 
-# Import and patch the preprocessing modules
-print("Step 1/3: Running Whisper transcription...")
-print("-" * 60)
+# Check if Step 1 (Whisper transcription) is already complete
+transcription_csv = f"{TEXT_OUTPUT_PATH.rstrip('/')}/text_transcriptions.csv"
+step1_complete = os.path.exists(transcription_csv)
 
-import preprocesswhisper
-# Monkey patch the paths
-preprocesswhisper.root_path = AUDIO_PATH
-preprocesswhisper.textual_data = f"{TEXT_OUTPUT_PATH.rstrip('/')}/text_transcriptions.csv"
-
-# Run whisper preprocessing
-preprocesswhisper.preprocess_whisper()
+if step1_complete:
+    print("Step 1/3: Whisper transcription - ALREADY COMPLETED")
+    print("-" * 60)
+    print(f"Found existing transcription file: {transcription_csv}")
+    # Count lines to verify
+    with open(transcription_csv, 'r') as f:
+        num_transcriptions = sum(1 for line in f) - 1  # Subtract header
+    print(f"Total transcriptions found: {num_transcriptions}")
+    print("Skipping to Step 2...\n")
+else:
+    # Import and patch the preprocessing modules
+    print("Step 1/3: Running Whisper transcription...")
+    print("-" * 60)
+    
+    import preprocesswhisper
+    # Monkey patch the paths
+    preprocesswhisper.root_path = AUDIO_PATH
+    preprocesswhisper.textual_data = transcription_csv
+    preprocesswhisper.test_mode = args.test
+    
+    # Run whisper preprocessing
+    preprocesswhisper.preprocess_whisper()
 
 print("\n" + "="*60)
 print("Step 2/3: Generating embeddings...")
@@ -66,60 +92,42 @@ preprocessembeddings.root_text_path = TEXT_OUTPUT_PATH
 preprocessembeddings.textual_data = f"{TEXT_OUTPUT_PATH.rstrip('/')}/text_transcriptions.csv"
 
 # Set default models if not configured (matching default.yaml)
-preprocessembeddings.textual_model = 'distil'  # distilbert
-preprocessembeddings.audio_model = 'egemaps'   # egemaps features
-preprocessembeddings.pauses = False
+from dotmap import DotMap
+import yaml
 
-# Reinitialize model variables after setting the model types
-preprocessembeddings.textual_model_data = preprocessembeddings.name_mapping_text.get(preprocessembeddings.textual_model, '')
-preprocessembeddings.audio_model_data = '_' + preprocessembeddings.name_mapping_audio.get(preprocessembeddings.audio_model, '')
-preprocessembeddings.pauses_data = '_pauses' if preprocessembeddings.pauses else ''
+with open(os.path.join(os.path.dirname(__file__), '..', 'configs', 'default.yaml'), 'r') as f:
+    config_yaml = yaml.safe_load(f)
+config = DotMap(config_yaml)
 
-# Load the models
-from transformers import AutoTokenizer, DistilBertModel
-import torch
-device = torch.device("cpu")  # Force CPU
-
-print(f"Loading {preprocessembeddings.textual_model} text model...")
-preprocessembeddings.tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
-preprocessembeddings.model = DistilBertModel.from_pretrained('distilbert-base-uncased').to(device)
-preprocessembeddings.model.eval()
-
-# Load audio model
-if preprocessembeddings.audio_model == 'egemaps':
-    import opensmile
-    preprocessembeddings.smile = opensmile.Smile(
-        feature_set=opensmile.FeatureSet.eGeMAPSv02,
-        feature_level=opensmile.FeatureLevel.Functionals,
-    )
-    preprocessembeddings.segment_length = 10
-
-print(f"Models loaded successfully!")
+preprocessembeddings.textual_model = config.model.textual_model  # distilbert
+preprocessembeddings.audio_model = config.model.audio_model   # wav2vec2
+preprocessembeddings.pauses = config.model.pauses
 
 # Run embeddings preprocessing
 preprocessembeddings.preprocess_text()
 
-print("\n" + "="*60)
-print("Step 3/3: Creating cross-validation splits...")
-print("-" * 60)
+if not args.test:
+    print("\n" + "="*60)
+    print("Step 3/3: Creating cross-validation splits...")
+    print("-" * 60)
 
-# Create splits using the dataset module
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from dataset import set_splits
-from dotmap import DotMap
+    # Create splits using the dataset module
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    from dataset import set_splits
+    from dotmap import DotMap
 
-# Create minimal config for split creation
-config = DotMap({
-    'data': {
-        'csv_labels_path': CSV_LABELS_PATH,
-        'splits_path': SPLITS_PATH
-    }
-})
+    # Create minimal config for split creation
+    config = DotMap({
+        'data': {
+            'csv_labels_path': CSV_LABELS_PATH,
+            'splits_path': SPLITS_PATH
+        }
+    })
 
-set_splits(config)
+    set_splits(config)
+    print(f"Splits saved to: {SPLITS_PATH}")
 
 print("\n" + "="*60)
 print("Preprocessing Complete!")
 print("="*60)
 print(f"\nOutput saved to: {TEXT_OUTPUT_PATH}")
-print(f"Splits saved to: {SPLITS_PATH}")

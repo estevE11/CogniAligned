@@ -32,9 +32,10 @@ def set_up(config, train_dataloader, device, fold=0):
     lossfn = nn.BCEWithLogitsLoss()
     
     num_training_steps = config.train.num_epochs * len(train_dataloader)
+    num_warmup_steps = 20 * len(train_dataloader)
 
     lr_scheduler = get_scheduler(
-        name="cosine", optimizer=optimizer, num_warmup_steps=20, num_training_steps=num_training_steps
+        name="cosine", optimizer=optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=num_training_steps
     )
 
     # Get W&B configuration from config or environment
@@ -54,6 +55,7 @@ def set_up(config, train_dataloader, device, fold=0):
         entity=wandb_entity if wandb_entity else None,
         name=run_name,
         mode=wandb_mode,
+        group=slurm_job_id if slurm_job_id else config.model_name,
         config={
             # Basic info
             "model_name": config.model_name,

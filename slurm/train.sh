@@ -3,12 +3,12 @@
 #SBATCH --output=/home/usuaris/veussd/roger.esteve.sanchez/CogniAligned/logs/slurm/%x_%j.txt
 #SBATCH -A veu
 #SBATCH -p veu
-#SBATCH --cpus-per-task=32
-#SBATCH --mem=128GB
-#SBATCH --gres=gpu:8
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=64GB
+#SBATCH --gres=gpu:1
 #SBATCH --ntasks=1
 #SBATCH --time=08:00:00
-#SBATCH --nodelist=veuc12
+#SBATCH --nodelist=veuc11
 
 set -euo pipefail
 

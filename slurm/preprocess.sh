@@ -5,13 +5,15 @@
 #SBATCH -p veu
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64GB
+#SBATCH --gres=gpu:1
 #SBATCH --ntasks=1
 #SBATCH --time=08:00:00
+#SBATCH --nodelist=veuc12
 
 set -euo pipefail
 
-# Force CPU-only processing to avoid GPU compatibility issues
-export CUDA_VISIBLE_DEVICES=""
+# Use GPU for faster preprocessing (Whisper + DistilBERT)
+# No CUDA_VISIBLE_DEVICES restriction - use GPU!
 
 REPO_DIR="/home/usuaris/veussd/roger.esteve.sanchez/CogniAligned"
 cd "$REPO_DIR"
@@ -49,8 +51,13 @@ echo "Output Path: $OUTPUT_PATH"
 echo ""
 
 # Create output directories
-mkdir -p "$OUTPUT_PATH/text/ad"
-mkdir -p "$OUTPUT_PATH/text/cn"
+if [ "${1:-}" == "--test" ]; then
+    echo "Running in TEST mode..."
+    mkdir -p "$OUTPUT_PATH/text"
+else
+    mkdir -p "$OUTPUT_PATH/text/ad"
+    mkdir -p "$OUTPUT_PATH/text/cn"
+fi
 
 echo "Running preprocessing pipeline..."
 echo "========================================"
@@ -59,7 +66,11 @@ echo "========================================"
 export ADRESSO_ROOT="$ADRESSO_ROOT"
 
 # Run preprocessing
-python -u modules/preprocess/run_preprocessing.py
+if [ "${1:-}" == "--test" ]; then
+    python -u modules/preprocess/run_preprocessing.py --test
+else
+    python -u modules/preprocess/run_preprocessing.py
+fi
 
 date
 echo "Preprocessing completed!"

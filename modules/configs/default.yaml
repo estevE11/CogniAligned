@@ -2,9 +2,9 @@ train:
   batch_size: 32
   num_epochs: 200
   learning_rate: 0.00002
-  weight_decay: 0.01
+  weight_decay: 0.1
   early_stopping: True
-  early_stopping_patience: 20
+  early_stopping_patience: 15
   cross_validation: True
   cross_validation_folds: 5
 
@@ -18,9 +18,9 @@ model:
   num_classes: 1
   hidden_mlp_size: 256
   textual_model: 'distil'
-  audio_model: 'egemaps'
-  pauses: False
-  fusion: 'cross'
+  audio_model: 'wav2vec2'
+  pauses: True
+  fusion: 'crossgated'
 
 data:
   train_dir: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train"
@@ -28,6 +28,10 @@ data:
   root_audio_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/audio/"
   csv_labels_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/adresso-train-mmse-scores.csv"
   splits_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/splits/"
+  test_dir: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/test-dist"
+  test_root_text_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/test-dist/text/"
+  test_root_audio_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/test-dist/audio/"
+  test_csv_labels_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/test-dist/test_results_task1.csv"
 
 wandb:
   project: "CogniAligned"
