@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from transformers import MambaConfig, MambaModel
 
 
 class AttnPooling(nn.Module):
@@ -478,6 +479,78 @@ class ElementWiseFusionEncoder(nn.Module):
             features = src * memory
         
         features = self.encoder(features, src_key_padding_mask=key_padding_mask)
+                
+        # Pooling strategy
+        if self.pooling == 'mean':
+            features = features.mean(dim=1)
+        elif self.pooling == 'cls':
+            features = features[:, 0, :]
+        
+        return self.classifier(features)
+
+
+class MambaFusionEncoder(nn.Module):
+    def __init__(self, config):
+        """Mamba Encoder."""
+        super(MambaFusionEncoder, self).__init__()
+
+        self.model_name = config.model_name
+        self.fusion = config.fusion
+        self.config = config
+
+        # Set hidden size based on fusion method
+        hidden_size = config.hidden_size * 2 if 'concat' in self.fusion else config.hidden_size
+
+        if 'mel' in self.model_name or 'egemaps' in self.model_name:
+            self.mel_extractor = ResNetAudio(in_channels=1, out_channels=config.hidden_size, dropout=config.dropout)
+        
+        mamba_config = MambaConfig(
+            hidden_size=hidden_size,
+            state_size=16,
+            num_hidden_layers=config.n_layers,
+            expand=2,
+        )
+        self.encoder = MambaModel(mamba_config)
+
+        self.pooling = config.pooling
+        
+        self.classifier = nn.Sequential(
+            nn.LayerNorm(hidden_size),
+            nn.Dropout(config.dropout),
+            nn.Linear(hidden_size, config.hidden_mlp_size),
+            nn.ReLU(),
+            nn.Linear(config.hidden_mlp_size, config.num_classes)
+        )
+        
+    def forward(self, features, mask=None, key_padding_mask=None):
+        """Forward pass for multi-layer Mamba encoder."""
+
+        src, memory = features
+
+        audio_model = self.model_name.split('_')[1] if self.config.audio_model != '' else ''
+
+        if 'mel' == audio_model or 'egemaps' == audio_model:
+            src = self.mel_extractor(src)
+        elif 'mel' == audio_model or 'egemaps' == audio_model:
+            memory = self.mel_extractor(memory)
+
+        fusion_type = self.fusion.replace('mamba', '')
+        if fusion_type == 'concat':
+            features = torch.cat((src, memory), dim=2)
+        elif fusion_type == 'selfattn':
+            src = src.mean(dim=1)
+            memory = memory.mean(dim=1)
+            features = torch.stack((src, memory), dim=1)
+        elif fusion_type == 'mean':
+            features = (src + memory) / 2
+        elif fusion_type == 'sum':
+            features = src + memory
+        elif fusion_type == 'mul':
+            features = src * memory
+        else:
+            features = src + memory
+        
+        features = self.encoder(inputs_embeds=features).last_hidden_state
                 
         # Pooling strategy
         if self.pooling == 'mean':

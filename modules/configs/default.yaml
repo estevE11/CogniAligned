@@ -20,7 +20,7 @@ model:
   textual_model: 'distil'
   audio_model: 'wav2vec2'
   pauses: True
-  fusion: 'crossgated'
+  fusion: 'mambaconcat'
 
 data:
   train_dir: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train"

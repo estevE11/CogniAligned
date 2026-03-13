@@ -1,6 +1,6 @@
 from dataset import get_dataloaders
 from utils import set_seed, get_config, train, save_config
-from model import CrossAttentionTransformerEncoder, MyTransformerEncoder, BidirectionalCrossAttentionTransformerEncoder, ElementWiseFusionEncoder
+from model import CrossAttentionTransformerEncoder, MyTransformerEncoder, BidirectionalCrossAttentionTransformerEncoder, ElementWiseFusionEncoder, MambaFusionEncoder
 from model_utils import log_model_summary_to_wandb
 import torch
 import wandb
@@ -18,7 +18,9 @@ def set_up(config, train_dataloader, device, fold=0):
     set_seed(42)
     
     if config.model.multimodality:
-        if 'bicross' in config.model.fusion:
+        if 'mamba' in config.model.fusion:
+            model = MambaFusionEncoder(config.model).to(device)
+        elif 'bicross' in config.model.fusion:
             model = BidirectionalCrossAttentionTransformerEncoder(config.model).to(device)
         elif 'cross' in config.model.fusion:
             model = CrossAttentionTransformerEncoder(config.model).to(device)
