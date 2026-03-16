@@ -105,6 +105,19 @@ We also evaluate the CogniAlign architecture, recently proposed by Ortiz-Perez e
     \item \textbf{Classification}: The fused representation is processed by a transformer encoder layer to capture higher-order dependencies, followed by an attention-based pooling or mean pooling strategy to obtain a fixed-size vector. This vector is then fed into a classification head to produce the final diagnostic prediction.
 \end{itemize}
 
+\subsubsection{Acoustic Feature Enhancement}
+In addition to the deep representations extracted by the SSL encoders, we integrate a set of 55 handcrafted acoustic features to capture fine-grained paralinguistic cues that may be indicative of cognitive decline. These features are extracted directly from the raw audio signal and encompass several categories:
+
+\begin{itemize}
+    \item \textbf{Temporal and Pause Features}: Total speech duration, speech-to-pause ratio, number of pauses, average/maximum/standard deviation of pause durations. These features capture hesitation patterns and speech fluency disruptions commonly observed in neurodegenerative conditions.
+    \item \textbf{Prosodic Features}: Pitch statistics (mean, standard deviation, range), intensity measures, speaking rate, and articulation rate. These reflect the melodic and rhythmic aspects of speech production.
+    \item \textbf{Voice Quality Features}: Local jitter and shimmer, and harmonics-to-noise ratio (HNR). These are extracted using Praat-based analysis and capture voice stability and phonation quality.
+    \item \textbf{Spectral Features}: Spectral centroid statistics, zero-crossing rate, and formant frequencies (F1, F2, F3 with mean and standard deviation). These features characterize the spectral envelope and articulatory patterns.
+    \item \textbf{Cepstral Features}: The first 13 Mel-Frequency Cepstral Coefficients (MFCCs) with their mean and standard deviation, providing a compact representation of the spectral characteristics.
+\end{itemize}
+
+These acoustic features are integrated via \textbf{late fusion}: after the cross-attention mechanism and temporal pooling, the resulting fixed-size embedding is concatenated with the 55-dimensional acoustic feature vector before being passed to the classification MLP. This strategy allows the model to leverage both the high-level semantic and contextual representations learned by the deep encoders and the interpretable, low-level acoustic markers that have been traditionally associated with speech pathology assessment. Both the SER2025 baseline and the CogniAlign architecture support this acoustic feature enhancement module.
+
 \section{Experimental Setup}
 
 \subsection{Datasets}
