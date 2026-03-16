@@ -120,8 +120,14 @@ def train(model, train_dataloader, valid_dataloader, lossfn, optimizer, lr_sched
                 
                 total_loss += loss.item()
                 
-                probs = torch.sigmoid(outputs)
-                predictions = torch.round(probs)
+                if outputs.shape[1] > 1:
+                    # Multiclass
+                    probs = torch.softmax(outputs, dim=1)
+                    predictions = torch.argmax(probs, dim=1)
+                else:
+                    # Binary
+                    probs = torch.sigmoid(outputs)
+                    predictions = torch.round(probs)
                 
                 if torch.isnan(predictions).any():
                     print("⚠️ Warning: NaN detected in predictions! Skipping batch.")
@@ -200,8 +206,14 @@ def evaluation(model, dataloader, lossfn, log, test=False):
             loss = lossfn(outputs, labels)
             total_loss += loss.item()
             
-            probs = torch.sigmoid(outputs)
-            predictions = torch.round(probs)
+            if outputs.shape[1] > 1:
+                # Multiclass
+                probs = torch.softmax(outputs, dim=1)
+                predictions = torch.argmax(probs, dim=1)
+            else:
+                # Binary
+                probs = torch.sigmoid(outputs)
+                predictions = torch.round(probs)
             
             if torch.isnan(predictions).any():
                 print("⚠️ Warning: NaN detected in predictions! Skipping batch.")

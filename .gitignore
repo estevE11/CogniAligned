@@ -37,3 +37,13 @@ __pycache__/*
 *.zip
 # Ignore all .tar.gz files
 *.tar.gz
+
+# Virtual Environment
+.venv/
+.cache/
+
+# Data and Models
+*.pdf
+*.csv
+*.pt
+*.pth
