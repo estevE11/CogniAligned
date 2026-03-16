@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import torch
 import os
-from sklearn.model_selection import GroupKFold
+from sklearn.model_selection import GroupKFold, StratifiedGroupKFold
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -117,7 +117,13 @@ def set_splits(config):
     X = labels_pd.index.values
     y = labels_pd['DX_Pilar'] # Not strictly needed for splitting but good for stratification if we could (GroupKFold doesn't stratify)
     
-    gkf = GroupKFold(n_splits=5)
+    # Try StratifiedGroupKFold first, fallback to GroupKFold if not available
+    try:
+        gkf = StratifiedGroupKFold(n_splits=5)
+        print("Using StratifiedGroupKFold for splitting.")
+    except NameError:
+        gkf = GroupKFold(n_splits=5)
+        print("Using GroupKFold for splitting (StratifiedGroupKFold not found).")
     
     os.makedirs(splits_dir, exist_ok=True)
     
@@ -157,7 +163,28 @@ def get_dataloaders(config, kfold_number=0):
     train_dataset = PPADataset(train_features, train_labels)
     validation_dataset = PPADataset(validation_features, validation_labels)
     
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    # Weighted Random Sampling
+    if hasattr(config.train, 'weighted_sampling') and config.train.weighted_sampling:
+        # Calculate weights for each class
+        # train_labels is a list of tensors, need to convert to int list
+        targets = [label.item() for label in train_labels]
+        class_counts = np.bincount(targets)
+        class_weights = 1. / class_counts
+        
+        # Assign a weight to each sample
+        sample_weights = [class_weights[target] for target in targets]
+        
+        sampler = torch.utils.data.WeightedRandomSampler(
+            weights=sample_weights,
+            num_samples=len(sample_weights),
+            replacement=True
+        )
+        
+        train_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=sampler)
+        print("Using WeightedRandomSampler for training data.")
+    else:
+        train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        
     validation_dataloader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False)
     
     return train_dataloader, validation_dataloader

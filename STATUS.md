@@ -2,23 +2,26 @@
 
 ## Recent Updates
 - **PPA Experiment**: Created a new training pipeline for PPA dataset (multiclass: lvPPA, nfPPA, svPPA) in `modules/ppa/`.
-- **Mamba Regularization**: Reduced Mamba fusion encoder size (to ~6.7M params) and added dropout to mitigate overfitting.
-- **Ensemble Evaluation**: `modules/test.py` now calculates Accuracy, F1, Precision, Recall, and Loss against `task1.csv` ground truth.
-- **W&B Final Test Run**: Test results are now logged as a 6th run in the W&B group with `job_type="test_evaluation"`.
-- **SOTA Config Setup**: Successfully ran the pipeline with Wav2Vec2, pause tokens, and `crossgated` fusion.
+- **Confusion Matrix**: Added confusion matrix logging to W&B for PPA experiments to analyze class-wise performance.
+- **PPA Slower Config**: Created `modules/configs/ppa/slower.yaml` (Batch size 8, LR 1e-5, Dropout 0.5, smaller MLP).
+- **Balanced Sampling**: Added `WeightedRandomSampler` to force balanced class distribution during training (Experiment 4).
+- **Balanced No Weights**: Experiment 5 removes class weights from loss (since sampling is balanced) and increases batch size to 16.
+- **Stratified Group Split**: Implemented `StratifiedGroupKFold` to ensure every fold has a representative distribution of `nfPPA` and `svPPA`.
+- **Mamba Regularization**: Reduced Mamba fusion encoder size (to ~6.7M params) and added dropout.
+- **Ensemble Evaluation**: `modules/test.py` calculates detailed metrics against ground truth.
 
 ## Active SLURM Jobs
-- **PPA Preprocessing (Job 2396923):** Running Whisper and embedding extraction for WAB samples.
-- **PPA Training (Job 2396924):** Pending (dependent on preprocessing).
-- **Training (Job 2396866):** SOTA config rerun with seed 43 and new splits (5-fold CV) - Completed.
-- **Evaluation/Testing (Job 2396867):** Final ensemble test evaluation on SOTA model - Completed.
+- **PPA Stratified Training (Job 2397018):** Running with `StratifiedGroupKFold` splits + Balanced Sampling + No Weights.
 
 ## Results Summary
+- **PPA Balanced No Weights (Job 2397007)**:
+  - **Result**: **Collapse persists** in Folds 0-3. Identified root cause as **poor data distribution** in `GroupKFold` splits (Fold 0 had 18 `nfPPA` vs Fold 4 with 5).
+- **PPA Slower Config (Job 2396963 / 2396962)**:
+  - **Fold 4**: **77.5% Accuracy**, **0.68 F1**, **0.63 Recall**.
+  - **Folds 0-3**: ~48% Accuracy, ~0.21 F1, **0.33 Recall** (majority class collapse confirmed via Confusion Matrix).
 - **SOTA Config (Wav2Vec2 + P + crossgated)**: 
-  - Latest Test Accuracy: **83.10%** (Seed 43, Job 2396866/7)
-  - Previous Test Accuracy: **80.28%** (Seed 42, Job 2395731)
-- **Mamba Experiment (First Attempt)**: Overfitted severely (100% train accuracy, ~60% val accuracy).
-- **Mamba Experiment (Regularized - Job 2396178):** Results pending...
+  - Latest Test Accuracy: **83.10%** (Seed 43)
+- **Mamba Experiment**: Overfitted.
 
 ---
 *Monitoring squeue for job updates.*

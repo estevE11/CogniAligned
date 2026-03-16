@@ -1,0 +1,231 @@
+\documentclass{Odyssey2026}
+
+% 2023-10-21 modified by Simon King (Simon.King@ed.ac.uk)  
+% 2024-01 modified by TPC Chairs of Interspeech 2024  
+% 2024-10 modified by Antoine Serrurier for Interspeech 2025
+% 2024-12 modified by TPC Chairs of Interspeech 2025
+
+% **************************************
+% *    DOUBLE-BLIND REVIEW SETTINGS    *
+% **************************************
+% Comment out \interspeechcameraready when submitting the 
+% paper for review.
+% If your paper is accepted, uncomment this to produce the
+%  'camera ready' version to submit for publication.
+
+ %\interspeechcameraready 
+
+
+% **************************************
+% *                                    *
+% *      STOP !   DO NOT DELETE !      *
+% *          READ THIS FIRST           *
+% *                                    *
+% * This template also includes        *
+% * important INSTRUCTIONS that you    *
+% * must follow when preparing your    *
+% * paper. Read it BEFORE replacing    *
+% * the content with your own work.    *
+% **************************************
+
+% title here must exactly match the title entered into the paper submission system
+\title{Deep learning based analysis of spontaneous speech for diagnostic classification and biomarker prediction in Alzheimer’s disease and primary progressive aphasia 
+}
+
+% the order of authors here must exactly match the order entered into the paper submission system
+% note that the COMPLETE list of authors MUST be entered into the paper submission system at the outset, including when submitting your manuscript for double-blind review
+\author[affiliation={1}]{FirstNameA}{LastNameA}
+\author[affiliation={2,3}]{FirstNameB}{LastNameB}
+\author[affiliation={1,3}]{FirstNameC}{LastNameC}
+
+%The maximum number of authors in the author list is 20. If the number of contributing authors is more than this, they should be listed in a footnote or the acknowledgement section.
+
+% if you have too many addresses to fit within the available space, try removing the "\\" newlines
+\affiliation{First Department}{First Affiliation}{First Country}
+\affiliation{Second Department}{Second Affiliation}{Second Country}
+\affiliation{}{Just Institute}{And Country}
+\email{first@university.edu, second@companyA.com, third@companyB.ai}
+\keywords{Cognitive Decline Detection, Alzheimer’s Dementia, Transfer Learning}
+
+\newcommand{\blue}[1]{\textcolor{blue}{#1}}
+\usepackage{comment}
+\usepackage{soul}
+\begin{document}
+
+\maketitle
+
+% the abstract here must exactly match the abstract entered into the paper submission system
+
+% MARC + PILAR
+\begin{abstract}
+    
+Differential diagnosis between Alzheimer’s disease (AD) phenotypes and Primary Progressive Aphasia (PPA) variants remains a significant clinical challenge due to overlapping symptomatic profiles. Furthermore, identifying underlying beta-amyloid pathology typically requires invasive or costly procedures. This study evaluates the utility of a deep learning-based spontaneous speech analysis for diagnostic classification and biomarker prediction in AD and PPA. While existing models are biased toward English-language datasets, this study addresses a linguistic gap by benchmarking our framework on the IS2021 ADReSSo challenge and extending its application to a unique Spanish-speaking cohort from the Sant Pau Initiative on Neurodegeneration (SPIN). Our architecture leverages a deep learning system that integrates state-of-the-art encoders for AD detection and audio processing. Our approach integrates acoustic and linguistic features for the automated clinical phenotyping of neurodegenerative diseases.
+\end{abstract}
+
+
+
+% MARC + PILAR (motivació aphasias)
+\section{Introduction}
+
+
+
+Deep learning has become a cornerstone in speech technologies due to its capability of learning complex patterns directly from large amounts of audio. Unlike traditional techniques that utilize handcrafted features to extract representations, deep learning extracts them directly from raw audio, improving significantly the performance of the models. In recent years, transformer architectures \cite{NIPS2017_3f5ee243} have advanced these technologies by leveraging self-attention mechanisms to model long-range dependencies in sequences. This has been a groundbreaking improvement in both efficiency and performance, as the transformer fully parallelizes computation and mitigates issues such as vanishing gradients, allowing models to incorporate a broader contextual window.
+
+
+One of the main challenges in speech processing is the limited availability of labeled audio data. In order to overcome this issue, self-supervised learning (SSL) models make use of large amounts of unlabeled data to create speech representations. Instead of relying on hand-crafted features, these models are trained on pretext tasks that exploit the intrinsic structure of the speech signal. Some of the state-of-the-art approximations are wav2vec 2.0 \cite{NEURIPS2020_92d1e1eb}, HuBERT \cite{10.1109/TASLP.2021.3122291}, and WavLM \cite{chen2022wavlm}. All of them employ transformer-based architectures to encode raw audio files.
+
+CogniAlign \cite{ORTIZPEREZ2025114264}
+
+% MARC + PILAR ()
+\section{Related work}
+Aqui va el related work
+
+\section{Methodology}
+
+\subsection{Overview}
+This study proposes a multimodal deep learning framework designed to analyze spontaneous speech for the detection of neurodegenerative diseases. The system processes both acoustic and linguistic information extracted from speech samples. The core methodology involves extracting high-level representations from raw audio and automatic transcriptions using state-of-the-art pre-trained encoders, followed by a fusion mechanism that integrates these modalities to perform diagnostic classification. We investigate two distinct architectures: a baseline model (SER2025) and our proposed architecture (CogniAlign). Both models are designed to handle the variable length of spontaneous speech and leverage transfer learning from large-scale pre-trained models.
+
+\subsection{Proposed Architectures}
+
+The general pipeline for both architectures consists of three main stages: feature extraction, multimodal fusion, and classification.
+
+\subsubsection{SER2025}
+The SER2025 architecture corresponds to our previous work \cite{casals2024attention} and serves as our baseline. Adapted from recent advancements in speech emotion recognition and paralinguistics, it employs a dual-stream approach:
+\begin{itemize}
+    \item \textbf{Speech Encoder}: We utilize \textbf{Wav2Vec2-XLSR-300M} \cite{29}, a large-scale self-supervised model pre-trained on 53 languages, to extract frame-level acoustic features. This model is particularly robust for cross-lingual applications.
+    \item \textbf{Text Encoder}: For linguistic features, we employ \textbf{ModernBERT-base} \cite{32}, a highly efficient encoder optimized for long-context understanding.
+    \item \textbf{Fusion \& Classification}: The features from both modalities are projected to a common dimension using linear adapters. The sequence-to-sequence modeling is performed using a standard Multi-Head Attention mechanism or passed directly depending on configuration. A statistical pooling layer aggregates the temporal dimension, computing statistics (mean and standard deviation) over the sequence. Finally, a Multi-Layer Perceptron (MLP) acts as the classifier.
+\end{itemize}
+
+\subsubsection{CogniAlign}
+We also evaluate the CogniAlign architecture, recently proposed by Ortiz-Perez et al. \cite{ORTIZPEREZ2025114264}, which introduces a more sophisticated fusion strategy to better align acoustic and linguistic cues:
+\begin{itemize}
+    \item \textbf{Encoders}: Similar to the baseline, this model uses \textbf{Wav2Vec2} for acoustic modeling. For the textual component, it opts for \textbf{DistilBERT}, a lighter and faster alternative that maintains competitive performance.
+    \item \textbf{Gated Cross-Attention Fusion}: Unlike simple concatenation, CogniAlign employs a Gated Cross-Attention mechanism. In this setup, one modality serves as the \textit{query} and the other as \textit{key} and \textit{value}. This allows the model to dynamically weight the importance of acoustic features based on the linguistic context (or vice versa). A gating mechanism further refines the integration by controlling the flow of information from the cross-attention output, allowing the network to selectively emphasize relevant multimodal interactions while suppressing noise.
+    \item \textbf{Classification}: The fused representation is processed by a transformer encoder layer to capture higher-order dependencies, followed by an attention-based pooling or mean pooling strategy to obtain a fixed-size vector. This vector is then fed into a classification head to produce the final diagnostic prediction.
+\end{itemize}
+
+\section{Experimental Setup}
+
+\subsection{Datasets}
+We evaluate our models on two distinct datasets, covering different languages and pathologies.
+
+\textbf{ADReSSo-IS2021}: The Alzheimer’s Dementia Recognition through Spontaneous Speech only (ADReSSo) dataset \cite{14} consists of spontaneous speech recordings from the Pitt Corpus. It contains 237 audio files (approx. 166 minutes) of picture description tasks performed by English-speaking participants. The dataset is balanced between Alzheimer’s Disease (AD) patients and Control Normal (CN) subjects. We use this dataset for benchmarking our models on a standard task.
+
+\textbf{WAV\_Samples (SPIN Cohort)}: We utilize a private dataset from the Sant Pau Initiative on Neurodegeneration (SPIN). This dataset comprises spontaneous speech recordings from Spanish and Catalan speakers. The samples are processed using a sliding window approach with 14-second windows and 10.5-second stride. Automatic transcriptions are generated using the Whisper ASR model ("tiny" variant for efficiency). We define two specific tasks on this dataset:
+\begin{itemize}
+    \item \textbf{Beta-Amyloid Prediction}: A binary classification task to predict amyloid positivity status (Positive vs. Negative), a key biomarker for Alzheimer's pathology.
+    \item \textbf{Primary Progressive Aphasia (PPA) Classification}: A 3-class classification problem distinguishing between PPA variants: non-fluent/agrammatic (PPA-G), semantic (PPA-S), and logopenic (PPA-L).
+\end{itemize}
+
+\subsection{Training Details}
+All models are trained using the PyTorch framework. For the ADReSSo dataset, we follow the standard train/test split provided by the challenge. For the SPIN dataset, we employ a 5-fold cross-validation scheme stratified by patient ID to ensure no subject overlap between training and validation sets.
+
+Optimization is performed using AdamW with a learning rate of $1e-4$ for the baseline and $2e-5$ for CogniAlign, with a weight decay of 0.01. We use a cosine annealing learning rate scheduler with warmup. The batch size is set to 32. To mitigate class imbalance, we employ a weighted Cross-Entropy loss where class weights are inversely proportional to their frequency.
+
+For the SER2025 baseline, data augmentation is applied during training, including reverberation, additive background noise, and speed perturbation, to improve robustness. CogniAlign focuses on architectural regularization through dropout (0.1-0.3) and layer normalization.
+
+\subsection{Transfer Learning Strategy}
+Given the scarcity of labeled data in the target domain (SPIN cohort), we adopt a transfer learning strategy. We first train our models on the ADReSSo dataset (English) to learn general representations of pathological speech associated with cognitive decline. We then fine-tune these pre-trained models on the specific tasks of the SPIN dataset (Amyloid and PPA). This approach aims to leverage cross-lingual features of neurodegeneration, hypothesizing that acoustic markers of cognitive impairment share commonalities across languages.
+
+\subsection{Evaluation Details}
+Model performance is evaluated using accuracy, macro-averaged F1-score, recall, and precision. For the binary classification tasks (AD and Amyloid), we also report sensitivity and specificity where applicable. In the SPIN dataset, performance is aggregated across the cross-validation folds. For the ADReSSo challenge, we report results on the held-out test set (or validation set depending on availability).
+
+\section{Results (this section already has the tables, you do not need to write down anything here for now)}
+
+\begin{table}[h]
+    \centering
+    \caption{Performance Comparison of Different Models}
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Model} & \textbf{Accuracy} & \textbf{F1 Score} & \textbf{Recall} & \textbf{Precision} \\
+        \midrule
+        Baselines... & & & & \\
+        SER2025      & & & & \\
+        CogniAlign    & & & & \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \caption{Adresso challenge}
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Model} & \textbf{Accuracy} & \textbf{F1 Score} & \textbf{Recall} & \textbf{Precision} \\
+        \midrule
+        Baselines... & & & & \\
+        SER2025      & 81.00 & 83.71 & & \\
+        CogniAlign   & & & & \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \caption{Betamiloyd binary}
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Model} & \textbf{Accuracy} & \textbf{F1 Score} & \textbf{Recall} & \textbf{Precision} \\
+        \midrule
+        Baselines... & & & & \\
+        SER2025      & 83.90 & & & \\
+        CogniAlign   & & & & \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \caption{Betamiloyd binary transfer learning}
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Model} & \textbf{Accuracy} & \textbf{F1 Score} & \textbf{Recall} & \textbf{Precision} \\
+        \midrule
+        Baselines... & & & & \\
+        SER2025      & & & & \\
+        CogniAlign   & & & & \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \caption{Results for PPA Classification (3 classes)}
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Model} & \textbf{Accuracy} & \textbf{F1 Score} & \textbf{Recall} & \textbf{Precision} \\
+        \midrule
+        Baselines... & & & & \\
+        SER2025      & & & & \\
+        CogniAlign (Best Fold)   & 72.50 & 66.98 & 68.76 & 68.65 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \caption{afasias (c=3) transfer learning}
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Model} & \textbf{Accuracy} & \textbf{F1 Score} & \textbf{Recall} & \textbf{Precision} \\
+        \midrule
+        Baselines... & & & & \\
+        SER2025      & & & & \\
+        CogniAlign   & & & & \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+\section{Conclusions}
+
+\section{Acknowledgements}
+
+
+
+\newpage
+\bibliographystyle{IEEEtran}
+\bibliography{Odyssey2026_BibEntries}
+
+\end{document}

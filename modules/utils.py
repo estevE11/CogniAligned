@@ -80,7 +80,7 @@ def get_metrics_classification(true_labels, pred_labels):
     
     return accuracy, f1, recall, precision
 
-def train(model, train_dataloader, valid_dataloader, lossfn, optimizer, lr_scheduler, num_epochs, model_name, early_stopping, early_stopping_patience, cross_val=False, num_cross_val=0):
+def train(model, train_dataloader, valid_dataloader, lossfn, optimizer, lr_scheduler, num_epochs, model_name, early_stopping, early_stopping_patience, cross_val=False, num_cross_val=0, class_names=None):
     """Train the model with early stopping.
     
     Note: wandb.init() should be called before calling this function.
@@ -96,6 +96,7 @@ def train(model, train_dataloader, valid_dataloader, lossfn, optimizer, lr_sched
     
     best_value, patience = 0, 0
     best_epoch, best_weights, rest_best_values = 0, None, []
+    best_true, best_pred = [], []
     
     num_training_steps = num_epochs * len(train_dataloader)
     progress_bar = tqdm(range(num_training_steps))
@@ -160,11 +161,12 @@ def train(model, train_dataloader, valid_dataloader, lossfn, optimizer, lr_sched
                 "learning_rate": current_lr,
             })
             
-            validation_value, rest_values = evaluation(model, valid_dataloader, lossfn, log)
+            validation_value, rest_values, val_true, val_pred = evaluation(model, valid_dataloader, lossfn, log)
             
             if validation_value > best_value:
                 best_epoch, best_weights = epoch + 1, copy.deepcopy(model.state_dict())
                 best_value, rest_best_values = validation_value, rest_values
+                best_true, best_pred = val_true, val_pred
                 patience = 0
             else:
                 patience += 1
@@ -248,7 +250,7 @@ def evaluation(model, dataloader, lossfn, log, test=False):
             "val/precision": precision,
         })
     
-    return accuracy, [f1, recall, precision]
+    return accuracy, [f1, recall, precision], total_true, total_pred
 
 
 def get_model_statistics(model='all'):

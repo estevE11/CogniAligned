@@ -1,4 +1,10 @@
-from modules.ppa.dataset import get_dataloaders, set_splits
+import sys
+import os
+
+# Add parent directory to path to allow importing modules from parent directory
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from ppa.dataset import get_dataloaders, set_splits
 from utils import set_seed, get_config, train, save_config
 from model import CrossAttentionTransformerEncoder, MyTransformerEncoder, BidirectionalCrossAttentionTransformerEncoder, ElementWiseFusionEncoder, MambaFusionEncoder
 from model_utils import log_model_summary_to_wandb
@@ -34,7 +40,21 @@ def set_up(config, train_dataloader, device, fold=0):
     
     # Choose loss function based on number of classes
     if config.model.num_classes > 1:
-        lossfn = nn.CrossEntropyLoss()
+        # Check if we should use class weights
+        use_weights = True
+        if hasattr(config.train, 'weighted_sampling') and config.train.weighted_sampling:
+            use_weights = False
+            print("Weighted sampling enabled: disabling class weights in CrossEntropyLoss.")
+        
+        if use_weights:
+            # Calculate class weights for PPA dataset
+            # Counts: lvPPA=104, nfPPA=63, svPPA=35 (Total=202)
+            # Weights = Total / (NumClasses * Count)
+            # 0 (lvPPA): 0.647, 1 (nfPPA): 1.069, 2 (svPPA): 1.924
+            class_weights = torch.tensor([0.647, 1.069, 1.924]).to(device)
+            lossfn = nn.CrossEntropyLoss(weight=class_weights)
+        else:
+             lossfn = nn.CrossEntropyLoss()
     else:
         lossfn = nn.BCEWithLogitsLoss()
     
@@ -125,7 +145,8 @@ def main(config):
         model, best_value, rest_best_values = train(
             model, train_dataloader, validation_dataloader, lossfn, optimizer, lr_scheduler, 
             config.train.num_epochs, config.path_name, config.train.early_stopping, 
-            config.train.early_stopping_patience
+            config.train.early_stopping_patience,
+            class_names=['lvPPA', 'nfPPA', 'svPPA']
         )
         
         model_save_path = os.path.join(log_path, 'model.pt')

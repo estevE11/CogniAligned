@@ -108,7 +108,7 @@ def get_training_config_summary(config) -> Dict[str, Any]:
         'gradient_clip_norm': 1.0,
         
         # Loss function
-        'loss_function': 'BCEWithLogitsLoss',
+        'loss_function': 'CrossEntropyLoss' if hasattr(config.model, 'num_classes') and config.model.num_classes > 1 else 'BCEWithLogitsLoss',
     }
     
     return summary
@@ -134,7 +134,7 @@ def log_model_summary_to_wandb(model: nn.Module, config, wandb_run) -> None:
     full_summary = {
         **arch_summary,
         **train_summary,
-        'dataset': 'ADReSSo',
+        # 'dataset': 'ADReSSo', # Handled by wandb.init()
     }
     
     # Update W&B config

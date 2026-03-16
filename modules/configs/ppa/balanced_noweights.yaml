@@ -1,0 +1,38 @@
+train:
+  batch_size: 16         # Increased to 16 to reduce variance with balanced sampling
+  num_epochs: 300
+  learning_rate: 0.00001
+  weight_decay: 0.1
+  early_stopping: True
+  early_stopping_patience: 25
+  cross_validation: True
+  cross_validation_folds: 5
+  weighted_sampling: True # Balance class distribution (1:1:1) in batches. Weights disabled in loss.
+
+model:
+  pooling: 'mean'
+  n_layers: 1
+  dropout: 0.5
+  hidden_size: 768
+  intermediate_size: 3072
+  n_heads: 12
+  num_classes: 3
+  hidden_mlp_size: 128
+  textual_model: 'distil'
+  audio_model: 'wav2vec2'
+  pauses: True
+  fusion: 'crossgated'
+
+data:
+  train_dir: "/home/usuaris/veussd/roger.esteve.sanchez/WAB_samples"
+  root_text_path: "/home/usuaris/veussd/roger.esteve.sanchez/WAB_samples/text/"
+  root_audio_path: "/home/usuaris/veussd/roger.esteve.sanchez/WAB_samples/"
+  csv_labels_path: "/home/usuaris/veussd/roger.esteve.sanchez/WAB_samples/labels.csv"
+  splits_path: "/home/usuaris/veussd/roger.esteve.sanchez/WAB_samples/splits/"
+
+wandb:
+  project: "CogniAligned-PPA"
+  entity: ""
+  mode: "online"
+
+model_name: 'balanced_noweights'
