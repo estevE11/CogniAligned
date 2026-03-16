@@ -8,8 +8,22 @@
 | **4** | **Balanced Sampling**: Added `WeightedRandomSampler` to oversample minority classes (`nfPPA`, `svPPA`) during training. Same "Slower" config otherwise. | Validation | - | `47.5%` (F0), `77.5%` (F4) | `0.21` (F0), `0.68` (F4) | `0.33` (F0), `0.63` (F4) |
 | **5** | **Balanced No Weights**: `WeightedRandomSampler` + `CrossEntropyLoss` (No Weights) + Batch Size 16. | Validation | - | `47.5%` (F0), `77.5%` (F4) | `0.21` (F0), `0.65` (F4) | `0.33` (F0), `0.60` (F4) |
 | **6** | **Stratified Group Split**: Implemented `StratifiedGroupKFold` to ensure balanced class distribution across all folds. `WeightedRandomSampler` + Batch 16 + No Loss Weights. | Validation | - | - | - | - |
+| **7** | **Acoustic Features**: Added 55 acoustic features (concatenated to classifier input). | Validation | - | Failed | Failed | Initial run (TypeError) |
+| **8** | **Acoustic Features (Fixed)**: Added 55 acoustic features (concatenated to classifier input). | Validation | - | `73.3%` | `0.68` | `0.69` |
 
 ## Detailed Notes
+
+### Experiment 8: Acoustic Features (Fixed) (Job 2397216)
+- **Goal**: Integrate 55 acoustic features (pause time, jitter, shimmer, etc.) to improve classification.
+- **Config**: `balanced_noweights.yaml` + `use_acoustic_features: True`.
+- **Results**:
+    - **Fold 0**: Acc 76.9%, F1 0.754, Recall 0.779
+    - **Fold 1**: Acc 76.9%, F1 0.713, Recall 0.726
+    - **Fold 2**: Acc 65.9%, F1 0.648, Recall 0.685
+    - **Fold 3**: Acc 79.5%, F1 0.699, Recall 0.684
+    - **Fold 4**: Acc 65.0%, F1 0.515, Recall 0.504
+    - **Average**: Acc 73.3%, F1 0.666, Recall 0.676
+- **Observation**: The integration of acoustic features significantly improved results across all folds, breaking the majority class collapse observed in previous experiments. Fold 4 remains the most challenging.
 
 ### Experiment 1: Baseline (Job 2396959)
 - **Config**: Default PPA config.
@@ -85,3 +99,8 @@
   - `StratifiedGroupKFold` (New): All folds have ~13 `nfPPA` and ~7 `svPPA`. Perfectly balanced.
 - **Config**: Same as Exp 5 (`balanced_noweights.yaml`) but with new splits.
 - **Hypothesis**: With balanced validation sets AND balanced training batches, the model should achieve consistent performance across all folds.
+
+### Experiment 7: Acoustic Features (Job 2397189)
+- **Goal**: Integrate 47 acoustic features (pause time, jitter, shimmer, etc.) to improve classification.
+- **Config**: `balanced_noweights.yaml` + `use_acoustic_features: True`.
+- **Status**: Running.

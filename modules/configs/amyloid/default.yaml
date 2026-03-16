@@ -22,12 +22,15 @@ model:
   audio_model: 'wav2vec2'
   pauses: True
   fusion: 'crossgated'
+  use_acoustic_features: True
+  num_acoustic_features: 55
 
 data:
   train_dir: "/home/usuaris/veussd/roger.esteve.sanchez/WAB_samples"
   root_text_path: "/home/usuaris/veussd/roger.esteve.sanchez/WAB_samples/text/"
   root_audio_path: "/home/usuaris/veussd/roger.esteve.sanchez/WAB_samples/"
   csv_labels_path: "/home/usuaris/veussd/roger.esteve.sanchez/WAB_samples/labels.csv"
+  acoustic_features_path: "/home/usuaris/veussd/roger.esteve.sanchez/WAB_samples/acoustic_features.csv"
   splits_path: "/home/usuaris/veussd/roger.esteve.sanchez/WAB_samples/splits_amyloid/"
 
 wandb:

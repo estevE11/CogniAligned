@@ -20,6 +20,8 @@ model:
   textual_model: 'distil'
   audio_model: 'wav2vec2'
   pauses: True
+  use_acoustic_features: True
+  num_acoustic_features: 55
   fusion: 'crossgated'
 
 data:
@@ -27,6 +29,7 @@ data:
   root_text_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/text/"
   root_audio_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/audio/"
   csv_labels_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/adresso-train-mmse-scores.csv"
+  acoustic_features_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/acoustic_features.csv"
   splits_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/splits/"
   test_dir: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/test-dist"
   test_root_text_path: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/test-dist/text/"

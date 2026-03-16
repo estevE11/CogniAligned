@@ -63,6 +63,34 @@ def read_CSV(config):
     # Cache directory listing for faster lookups
     dir_contents = os.listdir(text_path) if os.path.exists(text_path) else []
 
+    # Load acoustic features if enabled
+    acoustic_features_df = None
+    feature_cols = []
+    if hasattr(config.model, 'use_acoustic_features') and config.model.use_acoustic_features:
+        af_path = config.data.acoustic_features_path
+        if os.path.exists(af_path):
+            print(f"DEBUG: Loading acoustic features from {af_path}")
+            acoustic_features_df = pd.read_csv(af_path)
+            # Normalize features (Z-score)
+            feature_cols = [c for c in acoustic_features_df.columns if c not in ['file_id', 'class', 'patient_id', 'Unnamed: 0']]
+            # Handle NaNs
+            acoustic_features_df[feature_cols] = acoustic_features_df[feature_cols].fillna(0)
+            
+            # Z-score normalization
+            mean = acoustic_features_df[feature_cols].mean()
+            std = acoustic_features_df[feature_cols].std()
+            # Avoid division by zero
+            std = std.replace(0, 1)
+            acoustic_features_df[feature_cols] = (acoustic_features_df[feature_cols] - mean) / std
+            
+            # Set index for faster lookup
+            if 'file_id' in acoustic_features_df.columns:
+                acoustic_features_df.set_index('file_id', inplace=True)
+            elif 'patient_id' in acoustic_features_df.columns:
+                acoustic_features_df.set_index('patient_id', inplace=True)
+        else:
+            print(f"WARNING: Acoustic features file not found at {af_path}")
+
     for index, row in labels_pd.iterrows():
         text_embeddings_path = None
         audio_embeddings_path = None
@@ -76,6 +104,17 @@ def read_CSV(config):
         file_id = os.path.splitext(filename)[0]
         if file_id.endswith('.alac'):
             file_id = os.path.splitext(file_id)[0]
+            
+        # Get acoustic features
+        acoustic_feat = None
+        if acoustic_features_df is not None:
+            if file_id in acoustic_features_df.index:
+                vals = acoustic_features_df.loc[file_id, feature_cols].values.astype(float)
+                acoustic_feat = torch.tensor(vals, dtype=torch.float32).to(device)
+            else:
+                # print(f"WARNING: No acoustic features for {file_id}")
+                vals = np.zeros(len(feature_cols))
+                acoustic_feat = torch.tensor(vals, dtype=torch.float32).to(device)
 
         if config.model.textual_model != '':
             suffix = name_mapping_text[config.model.textual_model] + pauses_data + '.pt'
@@ -127,8 +166,11 @@ def read_CSV(config):
         # Check if files exist
         if config.model.multimodality:
             if audio_embeddings_path and text_embeddings_path:
-                features.append((torch.load(audio_embeddings_path, map_location=device), 
-                                 torch.load(text_embeddings_path, map_location=device)))
+                feats = (torch.load(audio_embeddings_path, map_location=device), 
+                         torch.load(text_embeddings_path, map_location=device))
+                if acoustic_feat is not None:
+                    feats = feats + (acoustic_feat,)
+                features.append(feats)
                 uids.append(file_id)
                 label_val = 0 if str(row[dx_col]).lower() in ['cn', '0', 'lvppa'] else (1 if str(row[dx_col]).lower() in ['ad', '1', 'nfppa'] else 2)
                 labels.append(torch.tensor(label_val).to(device).float() if config.model.num_classes == 1 else torch.tensor(label_val).to(device).long())
@@ -136,12 +178,18 @@ def read_CSV(config):
                 continue
         else:
             if config.model.textual_model != '' and text_embeddings_path:
-                features.append(torch.load(text_embeddings_path, map_location=device))
+                feat = torch.load(text_embeddings_path, map_location=device)
+                if acoustic_feat is not None:
+                    feat = (feat, acoustic_feat)
+                features.append(feat)
                 uids.append(file_id)
                 label_val = 0 if str(row[dx_col]).lower() in ['cn', '0', 'lvppa'] else (1 if str(row[dx_col]).lower() in ['ad', '1', 'nfppa'] else 2)
                 labels.append(torch.tensor(label_val).to(device).float() if config.model.num_classes == 1 else torch.tensor(label_val).to(device).long())
             elif config.model.audio_model != '' and audio_embeddings_path:
-                features.append(torch.load(audio_embeddings_path, map_location=device))
+                feat = torch.load(audio_embeddings_path, map_location=device)
+                if acoustic_feat is not None:
+                    feat = (feat, acoustic_feat)
+                features.append(feat)
                 uids.append(file_id)
                 label_val = 0 if str(row[dx_col]).lower() in ['cn', '0', 'lvppa'] else (1 if str(row[dx_col]).lower() in ['ad', '1', 'nfppa'] else 2)
                 labels.append(torch.tensor(label_val).to(device).float() if config.model.num_classes == 1 else torch.tensor(label_val).to(device).long())

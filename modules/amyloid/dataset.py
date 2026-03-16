@@ -51,6 +51,34 @@ def read_CSV(config):
     
     text_path = config.data.root_text_path
 
+    # Load acoustic features if enabled
+    acoustic_features_df = None
+    feature_cols = []
+    if hasattr(config.model, 'use_acoustic_features') and config.model.use_acoustic_features:
+        af_path = config.data.acoustic_features_path
+        if os.path.exists(af_path):
+            print(f"DEBUG: Loading acoustic features from {af_path}")
+            acoustic_features_df = pd.read_csv(af_path)
+            # Normalize features (Z-score)
+            feature_cols = [c for c in acoustic_features_df.columns if c not in ['file_id', 'class', 'patient_id', 'Unnamed: 0']]
+            # Handle NaNs
+            acoustic_features_df[feature_cols] = acoustic_features_df[feature_cols].fillna(0)
+            
+            # Z-score normalization
+            mean = acoustic_features_df[feature_cols].mean()
+            std = acoustic_features_df[feature_cols].std()
+            # Avoid division by zero
+            std = std.replace(0, 1)
+            acoustic_features_df[feature_cols] = (acoustic_features_df[feature_cols] - mean) / std
+            
+            # Set index for faster lookup
+            if 'file_id' in acoustic_features_df.columns:
+                acoustic_features_df.set_index('file_id', inplace=True)
+            elif 'patient_id' in acoustic_features_df.columns:
+                acoustic_features_df.set_index('patient_id', inplace=True)
+        else:
+            print(f"WARNING: Acoustic features file not found at {af_path}")
+
     for index, row in labels_pd.iterrows():
         # Filename is in the first column
         filename = row.iloc[0] 
@@ -59,6 +87,17 @@ def read_CSV(config):
         # If there's a second extension (like .alac.pt), remove it too
         file_id = os.path.splitext(file_id)[0] if file_id.endswith('.alac') else file_id
         
+        # Get acoustic features
+        acoustic_feat = None
+        if acoustic_features_df is not None:
+            if file_id in acoustic_features_df.index:
+                vals = acoustic_features_df.loc[file_id, feature_cols].values.astype(float)
+                acoustic_feat = torch.tensor(vals, dtype=torch.float32).to(device)
+            else:
+                # print(f"WARNING: No acoustic features for {file_id}")
+                vals = np.zeros(len(feature_cols))
+                acoustic_feat = torch.tensor(vals, dtype=torch.float32).to(device)
+
         text_embeddings_path = None
         audio_embeddings_path = None
 
@@ -88,7 +127,10 @@ def read_CSV(config):
                     print(f"DEBUG: NaN detected in saved file for {file_id}! Skipping.")
                     continue
                     
-                features.append((audio_feat.to(device), text_feat.to(device)))
+                feats = (audio_feat.to(device), text_feat.to(device))
+                if acoustic_feat is not None:
+                    feats = feats + (acoustic_feat,)
+                features.append(feats)
                 uids.append(file_id)
                 labels.append(torch.tensor(label_val).to(device).float()) # Float for BCEWithLogitsLoss
             else:
@@ -100,7 +142,10 @@ def read_CSV(config):
                 if torch.isnan(text_feat).any():
                     print(f"DEBUG: NaN detected in saved file for {file_id}! Skipping.")
                     continue
-                features.append(text_feat.to(device))
+                text_feat = text_feat.to(device)
+                if acoustic_feat is not None:
+                    text_feat = (text_feat, acoustic_feat)
+                features.append(text_feat)
                 uids.append(file_id)
                 labels.append(torch.tensor(label_val).to(device).float())
             elif config.model.audio_model != '' and os.path.exists(audio_embeddings_path):
@@ -108,7 +153,10 @@ def read_CSV(config):
                 if torch.isnan(audio_feat).any():
                     print(f"DEBUG: NaN detected in saved file for {file_id}! Skipping.")
                     continue
-                features.append(audio_feat.to(device))
+                audio_feat = audio_feat.to(device)
+                if acoustic_feat is not None:
+                    audio_feat = (audio_feat, acoustic_feat)
+                features.append(audio_feat)
                 uids.append(file_id)
                 labels.append(torch.tensor(label_val).to(device).float())
             else:

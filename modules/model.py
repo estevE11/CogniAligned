@@ -250,10 +250,21 @@ class CrossAttentionTransformerEncoder(nn.Module):
         elif config.pooling == 'gatedattn':
             self.attn_pooling = GatedAttnPooling(config.hidden_size)
 
+        classifier_input_size = config.hidden_size
+        if hasattr(config, 'use_acoustic_features') and config.use_acoustic_features:
+             classifier_input_size += config.num_acoustic_features
+
         self.classifier = nn.Sequential(
-            nn.LayerNorm(config.hidden_size),
             nn.Dropout(config.dropout),
-            nn.Linear(config.hidden_size, config.hidden_mlp_size),
+            nn.Linear(classifier_input_size, config.hidden_mlp_size),
+            nn.ReLU(),
+            nn.Linear(config.hidden_mlp_size, config.num_classes)
+        )
+        
+        # Re-initialize the entire classifier to be sure
+        self.classifier = nn.Sequential(
+            nn.Dropout(config.dropout),
+            nn.Linear(classifier_input_size, config.hidden_mlp_size),
             nn.ReLU(),
             nn.Linear(config.hidden_mlp_size, config.num_classes)
         )
@@ -261,10 +272,22 @@ class CrossAttentionTransformerEncoder(nn.Module):
     def forward(self, features, mask=None, key_padding_mask=None):
         """Forward pass for multi-layer cross-attention transformer encoder."""
         
-        src, memory = features
+        acoustic = None
+        if isinstance(features, (list, tuple)):
+            if len(features) == 3:
+                src, memory, acoustic = features
+            elif len(features) == 2:
+                src, memory = features
+            else:
+                src = features[0]
+                memory = features[0]
+        else:
+            src = features
+            memory = features
 
         # DEBUG: Check for NaNs in input
-        if torch.isnan(src).any() or torch.isnan(memory).any():
+        if (isinstance(src, torch.Tensor) and torch.isnan(src).any()) or \
+           (isinstance(memory, torch.Tensor) and torch.isnan(memory).any()):
             print("DEBUG: NaN detected in input features!")
 
         audio_model = self.model_name.split('_')[1] if self.config.audio_model != '' else ''
@@ -288,6 +311,9 @@ class CrossAttentionTransformerEncoder(nn.Module):
             src = src[:, 0, :]
         elif 'attn' in self.pooling:
             src = self.attn_pooling(src, mask=mask)
+
+        if acoustic is not None:
+            src = torch.cat((src, acoustic), dim=1)
 
         output = self.classifier(src)
         if torch.isnan(output).any():
@@ -361,8 +387,10 @@ class BidirectionalCrossAttentionTransformerEncoder(nn.Module):
 
         init_mlp_size = config.hidden_size * 2 if 'concat' in self.fusion else config.hidden_size
 
+        if hasattr(config, 'use_acoustic_features') and config.use_acoustic_features:
+             init_mlp_size += config.num_acoustic_features
+
         self.classifier = nn.Sequential(
-            nn.LayerNorm(init_mlp_size),
             nn.Dropout(config.dropout),
             nn.Linear(init_mlp_size, config.hidden_mlp_size),
             nn.ReLU(),
@@ -372,10 +400,22 @@ class BidirectionalCrossAttentionTransformerEncoder(nn.Module):
     def forward(self, features, mask=None, key_padding_mask=None):
         """Forward pass for multi-layer cross-attention transformer encoder."""
         
-        src, memory = features
+        acoustic = None
+        if isinstance(features, (list, tuple)):
+            if len(features) == 3:
+                src, memory, acoustic = features
+            elif len(features) == 2:
+                src, memory = features
+            else:
+                src = features[0]
+                memory = features[0]
+        else:
+            src = features
+            memory = features
 
         # DEBUG: Check for NaNs in input
-        if torch.isnan(src).any() or torch.isnan(memory).any():
+        if (isinstance(src, torch.Tensor) and torch.isnan(src).any()) or \
+           (isinstance(memory, torch.Tensor) and torch.isnan(memory).any()):
             print("DEBUG: NaN detected in input features!")
 
         audio_model = self.model_name.split('_')[1] if self.config.audio_model != '' else ''
@@ -425,6 +465,9 @@ class BidirectionalCrossAttentionTransformerEncoder(nn.Module):
         elif self.pooling == 'cls':
             src = src[:, 0, :]
 
+        if acoustic is not None:
+            src = torch.cat((src, acoustic), dim=1)
+
         return self.classifier(src)
 
 
@@ -439,6 +482,8 @@ class ElementWiseFusionEncoder(nn.Module):
 
         hidden_size = config.hidden_size * 2 if self.fusion == 'concat' else config.hidden_size
 
+        if hasattr(config, 'use_acoustic_features') and config.use_acoustic_features:
+             hidden_size += config.num_acoustic_features
 
         if 'mel' in self.model_name or 'egemaps' in self.model_name:
             self.mel_extractor = ResNetAudio(in_channels=1, out_channels=config.hidden_size, dropout=config.dropout)
@@ -457,7 +502,6 @@ class ElementWiseFusionEncoder(nn.Module):
         self.pooling = config.pooling
         
         self.classifier = nn.Sequential(
-            nn.LayerNorm(hidden_size),
             nn.Dropout(config.dropout),
             nn.Linear(hidden_size, config.hidden_mlp_size),
             nn.ReLU(),
@@ -467,7 +511,18 @@ class ElementWiseFusionEncoder(nn.Module):
     def forward(self, features, mask=None, key_padding_mask=None):
         """Forward pass for multi-layer transformer encoder."""
 
-        src, memory = features
+        acoustic = None
+        if isinstance(features, (list, tuple)):
+            if len(features) == 3:
+                src, memory, acoustic = features
+            elif len(features) == 2:
+                src, memory = features
+            else:
+                src = features[0]
+                memory = features[0]
+        else:
+            src = features
+            memory = features
 
         audio_model = self.model_name.split('_')[1] if self.config.audio_model != '' else ''
 
@@ -497,6 +552,9 @@ class ElementWiseFusionEncoder(nn.Module):
         elif self.pooling == 'cls':
             features = features[:, 0, :]
         
+        if acoustic is not None:
+            features = torch.cat((features, acoustic), dim=1)
+
         return self.classifier(features)
 
 
@@ -533,19 +591,41 @@ class MambaFusionEncoder(nn.Module):
         self.pooling = config.pooling
         self.dropout = nn.Dropout(config.dropout)
         
+        classifier_input_size = self.mamba_hidden_size
+        if hasattr(config, 'use_acoustic_features') and config.use_acoustic_features:
+             classifier_input_size += config.num_acoustic_features
+
         self.classifier = nn.Sequential(
-            nn.LayerNorm(self.mamba_hidden_size),
             nn.Dropout(config.dropout),
-            nn.Linear(self.mamba_hidden_size, config.hidden_mlp_size),
+            nn.Linear(classifier_input_size, config.hidden_mlp_size),
             nn.ReLU(),
             nn.Dropout(config.dropout),
+            nn.Linear(config.hidden_mlp_size, config.num_classes)
+        )
+        
+        # Re-initialize the entire classifier to be sure
+        self.classifier = nn.Sequential(
+            nn.Dropout(config.dropout),
+            nn.Linear(classifier_input_size, config.hidden_mlp_size),
+            nn.ReLU(),
             nn.Linear(config.hidden_mlp_size, config.num_classes)
         )
         
     def forward(self, features, mask=None, key_padding_mask=None):
         """Forward pass for multi-layer Mamba encoder."""
 
-        src, memory = features
+        acoustic = None
+        if isinstance(features, (list, tuple)):
+            if len(features) == 3:
+                src, memory, acoustic = features
+            elif len(features) == 2:
+                src, memory = features
+            else:
+                src = features[0]
+                memory = features[0]
+        else:
+            src = features
+            memory = features
 
         audio_model = self.model_name.split('_')[1] if self.config.audio_model != '' else ''
 
@@ -582,6 +662,9 @@ class MambaFusionEncoder(nn.Module):
         elif self.pooling == 'cls':
             features = features[:, 0, :]
 
+        if acoustic is not None:
+            features = torch.cat((features, acoustic), dim=1)
+
         return self.classifier(features)
 
 
@@ -609,16 +692,36 @@ class MyTransformerEncoder(nn.Module):
 
         self.pooling = config.pooling
         
+        classifier_input_size = config.hidden_size
+        if hasattr(config, 'use_acoustic_features') and config.use_acoustic_features:
+             classifier_input_size += config.num_acoustic_features
+
         self.classifier = nn.Sequential(
-            nn.LayerNorm(config.hidden_size),
             nn.Dropout(config.dropout),
-            nn.Linear(config.hidden_size, config.hidden_mlp_size),
+            nn.Linear(classifier_input_size, config.hidden_mlp_size),
+            nn.ReLU(),
+            nn.Linear(config.hidden_mlp_size, config.num_classes)
+        )
+        
+        # Re-initialize the entire classifier to be sure
+        self.classifier = nn.Sequential(
+            nn.Dropout(config.dropout),
+            nn.Linear(classifier_input_size, config.hidden_mlp_size),
             nn.ReLU(),
             nn.Linear(config.hidden_mlp_size, config.num_classes)
         )
         
     def forward(self, features, mask=None, key_padding_mask=None):
         """Forward pass for multi-layer transformer encoder."""
+
+        acoustic = None
+        if isinstance(features, (list, tuple)):
+            if len(features) == 2:
+                features, acoustic = features
+            elif len(features) == 1:
+                features = features[0]
+        else:
+            features = features
 
         if 'mel' in self.model_name or 'egemaps' in self.model_name:
             features = self.mel_extractor(features)
@@ -631,4 +734,7 @@ class MyTransformerEncoder(nn.Module):
         elif self.pooling == 'cls':
             features = features[:, 0, :]
         
+        if acoustic is not None:
+            features = torch.cat((features, acoustic), dim=1)
+
         return self.classifier(features)
