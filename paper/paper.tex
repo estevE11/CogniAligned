@@ -135,20 +135,6 @@ Model performance is evaluated using accuracy, macro-averaged F1-score, recall, 
 
 \begin{table}[h]
     \centering
-    \caption{Performance Comparison of Different Models}
-    \begin{tabular}{lcccc}
-        \toprule
-        \textbf{Model} & \textbf{Accuracy} & \textbf{F1 Score} & \textbf{Recall} & \textbf{Precision} \\
-        \midrule
-        Baselines... & & & & \\
-        SER2025      & & & & \\
-        CogniAlign    & & & & \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-\begin{table}[h]
-    \centering
     \caption{Adresso challenge}
     \begin{tabular}{lcccc}
         \toprule
@@ -156,7 +142,7 @@ Model performance is evaluated using accuracy, macro-averaged F1-score, recall, 
         \midrule
         Baselines... & & & & \\
         SER2025      & 81.00 & 83.71 & & \\
-        CogniAlign   & & & & \\
+        CogniAlign & 87.20 & 87.10 & 87.32 & 87.14 \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -170,7 +156,21 @@ Model performance is evaluated using accuracy, macro-averaged F1-score, recall, 
         \midrule
         Baselines... & & & & \\
         SER2025      & 83.90 & & & \\
-        CogniAlign   & & & & \\
+        CogniAlign & 79.70 & 78.90 & 78.70 & 79.24 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \caption{Results for PPA Classification (3 classes)}
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Model} & \textbf{Accuracy} & \textbf{F1 Score} & \textbf{Recall} & \textbf{Precision} \\
+        \midrule
+        Baselines... & & & & \\
+        SER2025      & & & & \\
+        CogniAlign & 73.30 & 66.60 & 67.60 & 70.21 \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -191,20 +191,6 @@ Model performance is evaluated using accuracy, macro-averaged F1-score, recall, 
 
 \begin{table}[h]
     \centering
-    \caption{Results for PPA Classification (3 classes)}
-    \begin{tabular}{lcccc}
-        \toprule
-        \textbf{Model} & \textbf{Accuracy} & \textbf{F1 Score} & \textbf{Recall} & \textbf{Precision} \\
-        \midrule
-        Baselines... & & & & \\
-        SER2025      & & & & \\
-        CogniAlign (Best Fold)   & 72.50 & 66.98 & 68.76 & 68.65 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-\begin{table}[h]
-    \centering
     \caption{afasias (c=3) transfer learning}
     \begin{tabular}{lcccc}
         \toprule
@@ -216,7 +202,6 @@ Model performance is evaluated using accuracy, macro-averaged F1-score, recall, 
         \bottomrule
     \end{tabular}
 \end{table}
-
 
 \section{Conclusions}
 
