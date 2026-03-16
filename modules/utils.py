@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 import numpy as np
 import random
 import yaml
@@ -71,6 +72,13 @@ def save_config(config):
 
 def get_metrics_classification(true_labels, pred_labels):
     """Compute classification metrics safely."""
+    if not true_labels or not pred_labels:
+        return 0.0, 0.0, 0.0, 0.0
+    
+    # Flatten and convert to plain Python ints to avoid issues with numpy arrays
+    true_labels = np.array(true_labels).astype(int).ravel().tolist()
+    pred_labels = np.array(pred_labels).astype(int).ravel().tolist()
+    
     zero_div = 1 if len(set(true_labels)) == 1 else 0  # Avoid zero division warnings
     
     accuracy = accuracy_score(true_labels, pred_labels)
@@ -94,7 +102,7 @@ def train(model, train_dataloader, valid_dataloader, lossfn, optimizer, lr_sched
     
     log_path = f'logs/{model_name}/train_stats_{num_cross_val}.txt' if cross_val else f'logs/{model_name}/train_stats.txt'
     
-    best_value, patience = 0, 0
+    best_value, patience = -1.0, 0
     best_epoch, best_weights, rest_best_values = 0, None, []
     best_true, best_pred = [], []
     
@@ -109,8 +117,11 @@ def train(model, train_dataloader, valid_dataloader, lossfn, optimizer, lr_sched
             progress_bar.set_description(f"Epoch {epoch + 1}")
             log.write(f'Epoch {epoch + 1}:\n')
             
-            for features, labels in train_dataloader:        
-                outputs = model(features).squeeze(-1)
+            for features, labels in train_dataloader:
+                outputs = model(features)
+                # Ensure targets match logits shape for BCEWithLogitsLoss
+                if isinstance(lossfn, nn.BCEWithLogitsLoss) and outputs.dim() > 1 and outputs.shape[1] == 1 and labels.dim() == 1:
+                    labels = labels.unsqueeze(1)
                 loss = lossfn(outputs, labels)
                 
                 loss.backward()
@@ -121,13 +132,15 @@ def train(model, train_dataloader, valid_dataloader, lossfn, optimizer, lr_sched
                 
                 total_loss += loss.item()
                 
-                if outputs.shape[1] > 1:
-                    # Multiclass
+                # Handle multiclass vs binary outputs robustly
+                if outputs.dim() > 1 and outputs.shape[1] > 1:
+                    # Multiclass: [batch, num_classes]
                     probs = torch.softmax(outputs, dim=1)
                     predictions = torch.argmax(probs, dim=1)
                 else:
-                    # Binary
-                    probs = torch.sigmoid(outputs)
+                    # Binary: allow shapes [batch] or [batch, 1]
+                    logits = outputs.view(-1)
+                    probs = torch.sigmoid(logits)
                     predictions = torch.round(probs)
                 
                 if torch.isnan(predictions).any():
@@ -163,7 +176,8 @@ def train(model, train_dataloader, valid_dataloader, lossfn, optimizer, lr_sched
             
             validation_value, rest_values, val_true, val_pred = evaluation(model, valid_dataloader, lossfn, log)
             
-            if validation_value > best_value:
+            # Only update best metrics if we have valid (non-NaN) values
+            if not np.isnan(validation_value) and validation_value > best_value:
                 best_epoch, best_weights = epoch + 1, copy.deepcopy(model.state_dict())
                 best_value, rest_best_values = validation_value, rest_values
                 best_true, best_pred = val_true, val_pred
@@ -176,22 +190,22 @@ def train(model, train_dataloader, valid_dataloader, lossfn, optimizer, lr_sched
                 break
         
         if not rest_best_values:
-            rest_best_values = [0, 0, 0]
+            rest_best_values = [0.0, 0.0, 0.0]
         
         log.write(f'Best validation accuracy: {best_value}\n')
         log.write(f'Best validation F1: {rest_best_values[0]}\nBest validation Recall: {rest_best_values[1]}\nBest validation Precision: {rest_best_values[2]}\n')
         log.write(f'Best epoch: {best_epoch}\n')
     
-    # Log best metrics to W&B
-    wandb.log({
-        "best/val_accuracy": best_value,
-        "best/val_f1": rest_best_values[0],
-        "best/val_recall": rest_best_values[1],
-        "best/val_precision": rest_best_values[2],
-        "best_epoch": best_epoch,
-    })
-    
-    model.load_state_dict(best_weights)
+    # Log best metrics to W&B (only if we have a valid best model)
+    if best_weights is not None and best_epoch > 0:
+        wandb.log({
+            "best/val_accuracy": best_value,
+            "best/val_f1": rest_best_values[0],
+            "best/val_recall": rest_best_values[1],
+            "best/val_precision": rest_best_values[2],
+            "best_epoch": best_epoch,
+        })
+        model.load_state_dict(best_weights)
     return model, best_value, rest_best_values
 
 def evaluation(model, dataloader, lossfn, log, test=False):
@@ -204,17 +218,22 @@ def evaluation(model, dataloader, lossfn, log, test=False):
     
     with torch.no_grad():
         for features, labels in dataloader:
-            outputs = model(features).squeeze(-1)
+            outputs = model(features)
+            # Ensure targets match logits shape for BCEWithLogitsLoss
+            if isinstance(lossfn, nn.BCEWithLogitsLoss) and outputs.dim() > 1 and outputs.shape[1] == 1 and labels.dim() == 1:
+                labels = labels.unsqueeze(1)
             loss = lossfn(outputs, labels)
             total_loss += loss.item()
             
-            if outputs.shape[1] > 1:
-                # Multiclass
+            # Handle multiclass vs binary outputs robustly
+            if outputs.dim() > 1 and outputs.shape[1] > 1:
+                # Multiclass: [batch, num_classes]
                 probs = torch.softmax(outputs, dim=1)
                 predictions = torch.argmax(probs, dim=1)
             else:
-                # Binary
-                probs = torch.sigmoid(outputs)
+                # Binary: allow shapes [batch] or [batch, 1]
+                logits = outputs.view(-1)
+                probs = torch.sigmoid(logits)
                 predictions = torch.round(probs)
             
             if torch.isnan(predictions).any():

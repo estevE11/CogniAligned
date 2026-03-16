@@ -1,0 +1,37 @@
+train:
+  batch_size: 8          # Reduced from 32 to increase steps per epoch (~20 steps instead of ~6)
+  num_epochs: 300        # Increased epochs since steps are smaller
+  learning_rate: 0.00001 # Reduced LR (1e-5) for more stable convergence
+  weight_decay: 0.1
+  early_stopping: True
+  early_stopping_patience: 25 # Increased patience to allow for slower learning
+  cross_validation: True
+  cross_validation_folds: 5
+
+model:
+  pooling: 'mean'
+  n_layers: 1
+  dropout: 0.5           # Increased dropout from 0.3 to 0.5 for regularization
+  hidden_size: 768
+  intermediate_size: 3072
+  n_heads: 12
+  num_classes: 3
+  hidden_mlp_size: 128   # Reduced classification head size from 256 to 128
+  textual_model: 'distil'
+  audio_model: 'wav2vec2'
+  pauses: True
+  fusion: 'crossgated'
+
+data:
+  train_dir: "/home/usuaris/veussd/roger.esteve.sanchez/WAB_samples"
+  root_text_path: "/home/usuaris/veussd/roger.esteve.sanchez/WAB_samples/text/"
+  root_audio_path: "/home/usuaris/veussd/roger.esteve.sanchez/WAB_samples/"
+  csv_labels_path: "/home/usuaris/veussd/roger.esteve.sanchez/WAB_samples/labels.csv"
+  splits_path: "/home/usuaris/veussd/roger.esteve.sanchez/WAB_samples/splits/"
+
+wandb:
+  project: "CogniAligned-PPA"
+  entity: ""
+  mode: "online"
+
+model_name: 'slower_config'
