@@ -63,6 +63,9 @@ def read_CSV(config):
         filename = row.iloc[0] 
         file_id = os.path.splitext(filename)[0] # Remove extension
         
+        # If there's a second extension (like .alac.pt), remove it too
+        file_id = os.path.splitext(file_id)[0] if file_id.endswith('.alac') else file_id
+        
         text_embeddings_path = None
         audio_embeddings_path = None
 
@@ -78,8 +81,14 @@ def read_CSV(config):
         # Check if files exist
         if config.model.multimodality:
             if os.path.exists(audio_embeddings_path) and os.path.exists(text_embeddings_path):
-                features.append((torch.load(audio_embeddings_path, map_location=device), 
-                                 torch.load(text_embeddings_path, map_location=device)))
+                audio_feat = torch.load(audio_embeddings_path, map_location='cpu')
+                text_feat = torch.load(text_embeddings_path, map_location='cpu')
+                
+                if torch.isnan(audio_feat).any() or torch.isnan(text_feat).any():
+                    print(f"DEBUG: NaN detected in saved file for {file_id}! Skipping.")
+                    continue
+
+                features.append((audio_feat.to(device), text_feat.to(device)))
                 uids.append(file_id)
                 labels.append(torch.tensor(label_mapping[row['DX_Pilar']]).to(device).long()) # Use long for CrossEntropyLoss (multiclass)
             else:
@@ -87,11 +96,19 @@ def read_CSV(config):
                 continue
         else:
             if config.model.textual_model != '' and os.path.exists(text_embeddings_path):
-                features.append(torch.load(text_embeddings_path, map_location=device))
+                feat = torch.load(text_embeddings_path, map_location='cpu')
+                if torch.isnan(feat).any():
+                    print(f"DEBUG: NaN detected in saved file for {file_id}! Skipping.")
+                    continue
+                features.append(feat.to(device))
                 uids.append(file_id)
                 labels.append(torch.tensor(label_mapping[row['DX_Pilar']]).to(device).long())
             elif config.model.audio_model != '' and os.path.exists(audio_embeddings_path):
-                features.append(torch.load(audio_embeddings_path, map_location=device))
+                feat = torch.load(audio_embeddings_path, map_location='cpu')
+                if torch.isnan(feat).any():
+                    print(f"DEBUG: NaN detected in saved file for {file_id}! Skipping.")
+                    continue
+                features.append(feat.to(device))
                 uids.append(file_id)
                 labels.append(torch.tensor(label_mapping[row['DX_Pilar']]).to(device).long())
             else:
@@ -105,17 +122,20 @@ def set_splits(config):
     splits_dir = config.data.splits_path
     
     labels_pd = pd.read_csv(labels_path)
-    target_classes = ['lvPPA', 'nfPPA', 'svPPA']
-    labels_pd = labels_pd[labels_pd['DX_Pilar'].isin(target_classes)].reset_index(drop=True)
     
-    # We need to filter labels_pd to only include those that actually have features?
-    # Ideally yes, but set_splits usually runs once. 
-    # For consistency, we should probably use the full filtered list and assume preprocessing will cover them.
-    # Or better, we define splits on the CSV rows.
+    # Handle both PPA and ADReSSo
+    if 'DX_Pilar' in labels_pd.columns:
+        target_classes = ['lvPPA', 'nfPPA', 'svPPA']
+        labels_pd = labels_pd[labels_pd['DX_Pilar'].isin(target_classes)].reset_index(drop=True)
+        groups = labels_pd['UT ID']
+        y = labels_pd['DX_Pilar']
+    else:
+        # ADReSSo
+        labels_pd = labels_pd[labels_pd['dx'].astype(str).str.strip() != 'exclude'].reset_index(drop=True)
+        groups = labels_pd['adressfname']
+        y = labels_pd['dx']
     
-    groups = labels_pd['UT ID']
     X = labels_pd.index.values
-    y = labels_pd['DX_Pilar'] # Not strictly needed for splitting but good for stratification if we could (GroupKFold doesn't stratify)
     
     # Try StratifiedGroupKFold first, fallback to GroupKFold if not available
     try:
@@ -129,8 +149,16 @@ def set_splits(config):
     
     for i, (train_index, test_index) in enumerate(gkf.split(X, y, groups)):
         # Save the filenames (IDs) for consistency with existing pipeline
-        train_uids = [os.path.splitext(labels_pd.iloc[idx].iloc[0])[0] for idx in train_index]
-        val_uids = [os.path.splitext(labels_pd.iloc[idx].iloc[0])[0] for idx in test_index]
+        # Remove .alac extension if present before saving to split
+        def get_clean_id(idx):
+            fname = labels_pd.iloc[idx].iloc[0]
+            base = os.path.splitext(fname)[0]
+            if base.endswith('.alac'):
+                base = os.path.splitext(base)[0]
+            return base
+
+        train_uids = [get_clean_id(idx) for idx in train_index]
+        val_uids = [get_clean_id(idx) for idx in test_index]
         
         np.save(os.path.join(splits_dir, f'train_uids{i}'), np.array(train_uids))
         np.save(os.path.join(splits_dir, f'val_uids{i}'), np.array(val_uids))
@@ -152,6 +180,9 @@ def get_dataloaders(config, kfold_number=0):
     # Convert validation_split to set for faster lookup
     val_set = set(validation_split)
     
+    # print(f"DEBUG: Fold {kfold_number} - val_set size: {len(val_set)}")
+    # print(f"DEBUG: Fold {kfold_number} - total uids: {len(uids)}")
+
     for i, uid in enumerate(uids):
         if uid in val_set:
             validation_features.append(features[i])
@@ -159,6 +190,14 @@ def get_dataloaders(config, kfold_number=0):
         else:
             train_features.append(features[i])
             train_labels.append(labels[i])
+            
+    print(f"Fold {kfold_number}: {len(train_features)} train samples, {len(validation_features)} validation samples.")
+    
+    if len(train_features) == 0 or len(validation_features) == 0:
+        print(f"WARNING: Fold {kfold_number} has empty splits! Check if UID formats match.")
+        if len(uids) > 0 and len(val_set) > 0:
+            print(f"Sample UID from data: {uids[0]}")
+            print(f"Sample UID from split: {list(val_set)[0]}")
             
     train_dataset = PPADataset(train_features, train_labels)
     validation_dataset = PPADataset(validation_features, validation_labels)

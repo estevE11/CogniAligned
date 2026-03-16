@@ -51,8 +51,12 @@ def set_up(config, train_dataloader, device, fold=0):
             # Counts: lvPPA=104, nfPPA=63, svPPA=35 (Total=202)
             # Weights = Total / (NumClasses * Count)
             # 0 (lvPPA): 0.647, 1 (nfPPA): 1.069, 2 (svPPA): 1.924
-            class_weights = torch.tensor([0.647, 1.069, 1.924]).to(device)
-            lossfn = nn.CrossEntropyLoss(weight=class_weights)
+            # Only apply for PPA (3 classes)
+            if config.model.num_classes == 3:
+                class_weights = torch.tensor([0.647, 1.069, 1.924]).to(device)
+                lossfn = nn.CrossEntropyLoss(weight=class_weights)
+            else:
+                lossfn = nn.CrossEntropyLoss()
         else:
              lossfn = nn.CrossEntropyLoss()
     else:
@@ -66,7 +70,7 @@ def set_up(config, train_dataloader, device, fold=0):
     )
 
     # Get W&B configuration from config or environment
-    wandb_project = os.environ.get('WANDB_PROJECT', config.wandb.project if hasattr(config, 'wandb') else 'CogniAligned-PPA')
+    wandb_project = os.environ.get('WANDB_PROJECT', config.wandb.project if hasattr(config, 'wandb') else 'CogniAligned')
     wandb_entity = os.environ.get('WANDB_ENTITY', config.wandb.entity if hasattr(config, 'wandb') and config.wandb.entity else None)
     wandb_mode = os.environ.get('WANDB_MODE', config.wandb.mode if hasattr(config, 'wandb') else 'online')
     
@@ -86,7 +90,7 @@ def set_up(config, train_dataloader, device, fold=0):
         config={
             # Basic info
             "model_name": config.model_name,
-            "dataset": "WAB_PPA",
+            "dataset": "WAB_PPA" if config.model.num_classes == 3 else "ADReSSo",
             "fold": fold if config.train.cross_validation else None,
             "slurm_job_id": slurm_job_id if slurm_job_id else None,
         }
@@ -115,8 +119,14 @@ def main(config):
         log_file = os.path.join(log_path, 'cross_fold_summary.txt')
         with open(log_file, "w") as log:
             for fold in range(config.train.cross_validation_folds):
+                print(f"\n--- Starting Fold {fold} ---")
                 train_dataloader, validation_dataloader = get_dataloaders(config, kfold_number=fold)
                 
+                if len(train_dataloader.dataset) == 0 or len(validation_dataloader.dataset) == 0:
+                    print(f"Skipping Fold {fold} due to empty dataset.")
+                    log.write(f'Fold {fold}: SKIPPED (empty dataset)\n')
+                    continue
+
                 model, optimizer, lossfn, lr_scheduler = set_up(config, train_dataloader, device, fold)
                 model, best_value, rest_best_values = train(
                     model, train_dataloader, validation_dataloader, lossfn, optimizer, lr_scheduler,

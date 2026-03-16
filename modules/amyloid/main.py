@@ -101,6 +101,7 @@ def main(config):
         log_file = os.path.join(log_path, 'cross_fold_summary.txt')
         with open(log_file, "w") as log:
             for fold in range(config.train.cross_validation_folds):
+                print(f"\n--- Starting Fold {fold} ---")
                 
                 # Check if split files exist for this fold, if not regenerate (safety check)
                 if not os.path.exists(os.path.join(config.data.splits_path, f'val_uids{fold}.npy')):
@@ -109,6 +110,11 @@ def main(config):
 
                 train_dataloader, validation_dataloader = get_dataloaders(config, kfold_number=fold)
                 
+                if len(train_dataloader.dataset) == 0 or len(validation_dataloader.dataset) == 0:
+                    print(f"Skipping Fold {fold} due to empty dataset.")
+                    log.write(f'Fold {fold}: SKIPPED (empty dataset)\n')
+                    continue
+
                 model, optimizer, lossfn, lr_scheduler = set_up(config, train_dataloader, device, fold)
                 
                 # Setup model to train

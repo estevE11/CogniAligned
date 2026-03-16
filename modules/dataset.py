@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import torch
 import os
+import re
 from sklearn.model_selection import KFold
 
 # Default paths (will be overridden by config)
@@ -24,7 +25,6 @@ class AdressoDataset(Dataset):
         return len(self.labels)
 
     def __getitem__(self, idx):
-        
         return self.features[idx], self.labels[idx]
 
 name_mapping_text = {
@@ -42,7 +42,6 @@ name_mapping_audio = {
     'mel': 'mel'
 }
 
-
 def read_CSV(config):
     # Read CSV with labels (use config path if available, otherwise use default)
     labels_path = config.data.csv_labels_path if hasattr(config, 'data') else csv_labels_path
@@ -58,47 +57,101 @@ def read_CSV(config):
     # Use config paths if available, otherwise use defaults
     text_path = config.data.root_text_path if hasattr(config, 'data') else root_text_path
 
+    print(f"DEBUG: Reading CSV from {labels_path}")
+    print(f"DEBUG: Feature root path: {text_path}")
+    
+    # Cache directory listing for faster lookups
+    dir_contents = os.listdir(text_path) if os.path.exists(text_path) else []
+
     for index, row in labels_pd.iterrows():
         text_embeddings_path = None
         audio_embeddings_path = None
 
+        # Handle both PPA and ADReSSo/Amyloid column names
+        dx_col = 'dx' if 'dx' in row else ('DX_Pilar' if 'DX_Pilar' in row else 'DX_PILAR_amyloid')
+        uid_col = 'adressfname' if 'adressfname' in row else ('UT ID' if 'UT ID' in row else labels_pd.columns[0])
+
+        # Clean file_id (remove .alac and other extensions)
+        filename = str(row[uid_col])
+        file_id = os.path.splitext(filename)[0]
+        if file_id.endswith('.alac'):
+            file_id = os.path.splitext(file_id)[0]
+
         if config.model.textual_model != '':
-            text_embeddings_path = os.path.join(text_path, row['dx'], row['adressfname'] + 
-                                                    name_mapping_text[config.model.textual_model] + pauses_data + '.pt')
+            suffix = name_mapping_text[config.model.textual_model] + pauses_data + '.pt'
+            # Try direct path options first
+            path_options = [
+                os.path.join(text_path, filename + suffix),
+                os.path.join(text_path, file_id + suffix),
+                os.path.join(text_path, str(row[dx_col]), filename + suffix),
+                os.path.join(text_path, str(row[dx_col]), file_id + suffix)
+            ]
+            for p in path_options:
+                if os.path.exists(p):
+                    text_embeddings_path = p
+                    break
+            
+            if not text_embeddings_path:
+                # Regex fallback: find any file containing the numeric ID and matching suffix
+                match = re.search(r'(\d+)', filename)
+                if match:
+                    num_id = match.group(1)
+                    for f in dir_contents:
+                        if num_id in f and f.endswith(suffix):
+                            text_embeddings_path = os.path.join(text_path, f)
+                            break
             
         if config.model.audio_model != '':
             textual_data = name_mapping_text[config.model.textual_model] if config.model.textual_model != '' else 'distil'
-            audio_embeddings_path = os.path.join(text_path, row['dx'], row['adressfname'] + textual_data 
-                                                 + pauses_data + audio_data + '.pt')
+            suffix = textual_data + pauses_data + audio_data + '.pt'
+            path_options = [
+                os.path.join(text_path, filename + suffix),
+                os.path.join(text_path, file_id + suffix),
+                os.path.join(text_path, str(row[dx_col]), filename + suffix),
+                os.path.join(text_path, str(row[dx_col]), file_id + suffix)
+            ]
+            for p in path_options:
+                if os.path.exists(p):
+                    audio_embeddings_path = p
+                    break
+            
+            if not audio_embeddings_path:
+                match = re.search(r'(\d+)', filename)
+                if match:
+                    num_id = match.group(1)
+                    for f in dir_contents:
+                        if num_id in f and f.endswith(suffix):
+                            audio_embeddings_path = os.path.join(text_path, f)
+                            break
         
-        # Check if files exist (some might have failed preprocessing)
+        # Check if files exist
         if config.model.multimodality:
-            if os.path.exists(audio_embeddings_path) and os.path.exists(text_embeddings_path):
-                features.append((torch.load(audio_embeddings_path).to(device), torch.load(text_embeddings_path).to(device)))
-                uids.append(row['adressfname'])
-                labels.append(torch.tensor(0 if row['dx'] == "cn" else 1).to(device).float())
+            if audio_embeddings_path and text_embeddings_path:
+                features.append((torch.load(audio_embeddings_path, map_location=device), 
+                                 torch.load(text_embeddings_path, map_location=device)))
+                uids.append(file_id)
+                label_val = 0 if str(row[dx_col]).lower() in ['cn', '0', 'lvppa'] else (1 if str(row[dx_col]).lower() in ['ad', '1', 'nfppa'] else 2)
+                labels.append(torch.tensor(label_val).to(device).float() if config.model.num_classes == 1 else torch.tensor(label_val).to(device).long())
             else:
-                print(f"Skipping missing files for {row['adressfname']}")
                 continue
         else:
-            if config.model.textual_model != '' and os.path.exists(text_embeddings_path):
-                features.append(torch.load(text_embeddings_path).to(device))
-                uids.append(row['adressfname'])
-                labels.append(torch.tensor(0 if row['dx'] == "cn" else 1).to(device).float())
-            elif config.model.audio_model != '' and os.path.exists(audio_embeddings_path):
-                features.append(torch.load(audio_embeddings_path).to(device))
-                uids.append(row['adressfname'])
-                labels.append(torch.tensor(0 if row['dx'] == "cn" else 1).to(device).float())
+            if config.model.textual_model != '' and text_embeddings_path:
+                features.append(torch.load(text_embeddings_path, map_location=device))
+                uids.append(file_id)
+                label_val = 0 if str(row[dx_col]).lower() in ['cn', '0', 'lvppa'] else (1 if str(row[dx_col]).lower() in ['ad', '1', 'nfppa'] else 2)
+                labels.append(torch.tensor(label_val).to(device).float() if config.model.num_classes == 1 else torch.tensor(label_val).to(device).long())
+            elif config.model.audio_model != '' and audio_embeddings_path:
+                features.append(torch.load(audio_embeddings_path, map_location=device))
+                uids.append(file_id)
+                label_val = 0 if str(row[dx_col]).lower() in ['cn', '0', 'lvppa'] else (1 if str(row[dx_col]).lower() in ['ad', '1', 'nfppa'] else 2)
+                labels.append(torch.tensor(label_val).to(device).float() if config.model.num_classes == 1 else torch.tensor(label_val).to(device).long())
             else:
-                print(f"Skipping missing files for {row['adressfname']}")
                 continue
 
+    print(f"DEBUG: Successfully loaded {len(features)} samples.")
     return uids, features, labels
 
-
-
 def get_dataloaders(config, kfold_number = 0):
-
     uids, features, labels = read_CSV(config)
     
     # Use config path if available, otherwise use default
@@ -115,8 +168,11 @@ def get_dataloaders(config, kfold_number = 0):
     validation_features = []
     validation_labels = []
 
+    # Convert validation_split to set for faster lookup
+    val_set = set(validation_split)
+
     for i in range(len(uids)):
-        if uids[i] in validation_split:
+        if uids[i] in val_set:
             validation_uids.append(uids[i])
             validation_features.append(features[i])
             validation_labels.append(labels[i])
@@ -124,7 +180,6 @@ def get_dataloaders(config, kfold_number = 0):
             train_uids.append(uids[i])
             train_features.append(features[i])
             train_labels.append(labels[i])
-
 
     train_dataset = AdressoDataset(train_features, train_labels)
     validation_dataset = AdressoDataset(validation_features, validation_labels)
@@ -142,8 +197,15 @@ def set_splits(config=None):
     labels_pd = pd.read_csv(labels_path)
     uids = []
 
+    uid_col = 'adressfname' if 'adressfname' in labels_pd.columns else ('UT ID' if 'UT ID' in labels_pd.columns else labels_pd.columns[0])
+
     for index, row in labels_pd.iterrows():
-        uids.append(row['adressfname'])
+        # Clean UID format
+        filename = str(row[uid_col])
+        file_id = os.path.splitext(filename)[0]
+        if file_id.endswith('.alac'):
+            file_id = os.path.splitext(file_id)[0]
+        uids.append(file_id)
 
     # Split the uids into 5 folds with kfold from sklearn
     kfold = KFold(n_splits=5, shuffle=True, random_state=43)
@@ -162,8 +224,15 @@ def get_splits_stats(config=None):
     labels_pd = pd.read_csv(labels_path)
     uids = []
 
+    uid_col = 'adressfname' if 'adressfname' in labels_pd.columns else ('UT ID' if 'UT ID' in labels_pd.columns else labels_pd.columns[0])
+
     for index, row in labels_pd.iterrows():
-        uids.append(row['adressfname'])
+        # Clean UID format
+        filename = str(row[uid_col])
+        file_id = os.path.splitext(filename)[0]
+        if file_id.endswith('.alac'):
+            file_id = os.path.splitext(file_id)[0]
+        uids.append(file_id)
 
     for i in range(5):
         training_split = np.load(os.path.join(splits_dir, f'train_uids{i}.npy'))
@@ -173,14 +242,16 @@ def get_splits_stats(config=None):
         n_cn_val = 0
         n_ad_val = 0
 
+        dx_col = 'dx' if 'dx' in labels_pd.columns else ('DX_Pilar' if 'DX_Pilar' in labels_pd.columns else 'DX_PILAR_amyloid')
+
         for uid in training_split:
-            if labels_pd[labels_pd['adressfname'] == uid]['dx'].values[0] == 'cn':
+            if str(labels_pd[labels_pd[uid_col] == uid][dx_col].values[0]).lower() in ['cn', '0']:
                 n_cn_train += 1
             else:
                 n_ad_train += 1
 
         for uid in validation_split:
-            if labels_pd[labels_pd['adressfname'] == uid]['dx'].values[0] == 'cn':
+            if str(labels_pd[labels_pd[uid_col] == uid][dx_col].values[0]).lower() in ['cn', '0']:
                 n_cn_val += 1
             else:
                 n_ad_val += 1

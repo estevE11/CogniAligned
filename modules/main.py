@@ -1,4 +1,4 @@
-from dataset import get_dataloaders
+from dataset import get_dataloaders, set_splits
 from utils import set_seed, get_config, train, save_config
 from model import CrossAttentionTransformerEncoder, MyTransformerEncoder, BidirectionalCrossAttentionTransformerEncoder, ElementWiseFusionEncoder, MambaFusionEncoder
 from model_utils import log_model_summary_to_wandb
@@ -81,12 +81,23 @@ def main(config):
     log_path = os.path.join('logs', config.path_name)
     os.makedirs(log_path, exist_ok=True)
     
+    # Generate splits if they don't exist
+    if not os.path.exists(config.data.splits_path) or not os.listdir(config.data.splits_path):
+        print("Generating splits...")
+        set_splits(config)
+    
     if config.train.cross_validation:
         log_file = os.path.join(log_path, 'cross_fold_summary.txt')
         with open(log_file, "w") as log:
             for fold in range(config.train.cross_validation_folds):
+                print(f"\n--- Starting Fold {fold} ---")
                 train_dataloader, validation_dataloader = get_dataloaders(config, kfold_number=fold)
                 
+                if len(train_dataloader.dataset) == 0 or len(validation_dataloader.dataset) == 0:
+                    print(f"Skipping Fold {fold} due to empty dataset.")
+                    log.write(f'Fold {fold}: SKIPPED (empty dataset)\n')
+                    continue
+
                 model, optimizer, lossfn, lr_scheduler = set_up(config, train_dataloader, device, fold)
                 model, best_value, rest_best_values = train(
                     model, train_dataloader, validation_dataloader, lossfn, optimizer, lr_scheduler,

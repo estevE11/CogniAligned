@@ -218,6 +218,14 @@ def evaluation(model, dataloader, lossfn, log, test=False):
     
     with torch.no_grad():
         for features, labels in dataloader:
+            # Move features to device if they are tensors
+            if isinstance(features, (list, tuple)):
+                features = [f.to(device) if isinstance(f, torch.Tensor) else f for f in features]
+            else:
+                features = features.to(device)
+            
+            labels = labels.to(device)
+
             outputs = model(features)
             # Ensure targets match logits shape for BCEWithLogitsLoss
             if isinstance(lossfn, nn.BCEWithLogitsLoss) and outputs.dim() > 1 and outputs.shape[1] == 1 and labels.dim() == 1:

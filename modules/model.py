@@ -263,6 +263,10 @@ class CrossAttentionTransformerEncoder(nn.Module):
         
         src, memory = features
 
+        # DEBUG: Check for NaNs in input
+        if torch.isnan(src).any() or torch.isnan(memory).any():
+            print("DEBUG: NaN detected in input features!")
+
         audio_model = self.model_name.split('_')[1] if self.config.audio_model != '' else ''
 
         if 'mel' == audio_model or 'egemaps' == audio_model:
@@ -285,7 +289,10 @@ class CrossAttentionTransformerEncoder(nn.Module):
         elif 'attn' in self.pooling:
             src = self.attn_pooling(src, mask=mask)
 
-        return self.classifier(src)
+        output = self.classifier(src)
+        if torch.isnan(output).any():
+            print("DEBUG: NaN detected in model output!")
+        return output
     
 
 class BidirectionalCrossAttentionTransformerEncoder(nn.Module):
@@ -366,6 +373,10 @@ class BidirectionalCrossAttentionTransformerEncoder(nn.Module):
         """Forward pass for multi-layer cross-attention transformer encoder."""
         
         src, memory = features
+
+        # DEBUG: Check for NaNs in input
+        if torch.isnan(src).any() or torch.isnan(memory).any():
+            print("DEBUG: NaN detected in input features!")
 
         audio_model = self.model_name.split('_')[1] if self.config.audio_model != '' else ''
 

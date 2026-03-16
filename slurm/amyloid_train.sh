@@ -1,32 +1,40 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=amyloid_train
-#SBATCH --output=logs/slurm/%x_%j.txt
+#SBATCH --output=/home/usuaris/veussd/roger.esteve.sanchez/CogniAligned/logs/slurm/%x_%j.txt
 #SBATCH -A veu
 #SBATCH -p veu
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64GB
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks=1
-#SBATCH --time=08:00:00
 #SBATCH --nodelist=veuc10
+#SBATCH --time=08:00:00
 
 set -euo pipefail
 
 REPO_DIR="/home/usuaris/veussd/roger.esteve.sanchez/CogniAligned"
 cd "$REPO_DIR"
 
-if [ ! -d ".venv" ]; then
-    echo "Error: Virtual environment not found."
-    exit 1
-fi
-
 source .venv/bin/activate
+
 export PYTHONUNBUFFERED=1
+export TOKENIZERS_PARALLELISM=false
+export NCCL_P2P_DISABLE=1
+export NCCL_IB_DISABLE=1
 
-echo "========================================"
-echo "Starting Amyloid Binary Training"
-echo "========================================"
+# Redirect cache
+export HF_HOME="/home/usuaris/veussd/roger.esteve.sanchez/CogniAligned/.cache/huggingface"
+export WANDB_DIR="/home/usuaris/veussd/roger.esteve.sanchez/CogniAligned/.cache/wandb"
+mkdir -p "$HF_HOME" "$WANDB_DIR"
+mkdir -p "/home/usuaris/veussd/roger.esteve.sanchez/CogniAligned/logs/slurm"
 
-python -u modules/amyloid/main.py --config modules/configs/amyloid/default.yaml
+date
 
+CONFIG_FILE="modules/configs/amyloid/default.yaml"
+
+echo "Starting Amyloid training with config: $CONFIG_FILE"
+
+python -u modules/amyloid/main.py --config "$CONFIG_FILE"
+
+date
 echo "Training completed!"
