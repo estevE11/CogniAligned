@@ -15,7 +15,7 @@ wandb.login()
 
 def set_up(config, train_dataloader, device, fold=0):
     """Set up model, optimizer, loss function, and scheduler."""
-    set_seed(42)
+    set_seed(43)
     
     if config.model.multimodality:
         if 'mamba' in config.model.fusion:

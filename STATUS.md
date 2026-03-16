@@ -7,13 +7,13 @@
 - **SOTA Config Setup**: Successfully ran the pipeline with Wav2Vec2, pause tokens, and `crossgated` fusion.
 
 ## Active SLURM Jobs
-- **Training (Job 2396864):** SOTA config (Job 2395731) rerun (5-fold CV).
-- **Evaluation/Testing (Job 2396865):** Final ensemble test evaluation on SOTA model.
+- **Training (Job 2396866):** SOTA config rerun with seed 43 and new splits (5-fold CV).
+- **Evaluation/Testing (Job 2396867):** Final ensemble test evaluation on SOTA model.
 
 ## Results Summary
 - **SOTA Config (Wav2Vec2 + P + crossgated)**: 
-  - Test Accuracy: **80.28%** (from Job 2395731)
-  - Rerunning to verify with new metrics/logging...
+  - Latest Test Accuracy: **83.10%** (Seed 43, Job 2396866/7)
+  - Previous Test Accuracy: **80.28%** (Seed 42, Job 2395731)
 - **Mamba Experiment (First Attempt)**: Overfitted severely (100% train accuracy, ~60% val accuracy).
 - **Mamba Experiment (Regularized - Job 2396178):** Results pending...
 

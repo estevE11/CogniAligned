@@ -146,7 +146,7 @@ def set_splits(config=None):
         uids.append(row['adressfname'])
 
     # Split the uids into 5 folds with kfold from sklearn
-    kfold = KFold(n_splits=5, shuffle=True, random_state=42)
+    kfold = KFold(n_splits=5, shuffle=True, random_state=43)
 
     os.makedirs(splits_dir, exist_ok=True)
     for i, (train_index, test_index) in enumerate(kfold.split(uids)):
