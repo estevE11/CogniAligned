@@ -1,5 +1,5 @@
 train:
-  batch_size: 4
+  batch_size: 32
   num_epochs: 200
   learning_rate: 0.00002
   weight_decay: 0.1
@@ -20,7 +20,7 @@ model:
   textual_model: 'distil'
   audio_model: 'wav2vec2'
   pauses: True
-  fusion: 'mambaconcat'
+  fusion: 'crossgated'
 
 data:
   train_dir: "/home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train"
