@@ -251,17 +251,28 @@ class CrossAttentionTransformerEncoder(nn.Module):
             self.attn_pooling = GatedAttnPooling(config.hidden_size)
 
         classifier_input_size = config.hidden_size
-        if hasattr(config, 'use_acoustic_features') and config.use_acoustic_features:
-             classifier_input_size += config.num_acoustic_features
 
-        self.classifier = nn.Sequential(
-            nn.Dropout(config.dropout),
-            nn.Linear(classifier_input_size, config.hidden_mlp_size),
-            nn.ReLU(),
-            nn.Linear(config.hidden_mlp_size, config.num_classes)
-        )
-        
-        # Re-initialize the entire classifier to be sure
+        self.use_af_token = hasattr(config, 'use_acoustic_features') and config.use_acoustic_features
+        if self.use_af_token:
+            af_dim = getattr(config, 'af_hidden_size', config.hidden_size)
+            af_nheads = getattr(config, 'af_nheads', config.n_heads)
+            self.af_bottleneck = af_dim != config.hidden_size
+            self.acoustic_proj = nn.Sequential(
+                nn.Linear(config.num_acoustic_features, af_dim),
+                nn.LayerNorm(af_dim),
+            )
+            if self.af_bottleneck:
+                self.af_down_proj = nn.Linear(config.hidden_size, af_dim)
+                self.af_up_proj = nn.Linear(af_dim, config.hidden_size)
+            self.af_self_attn = nn.TransformerEncoderLayer(
+                d_model=af_dim,
+                nhead=af_nheads,
+                dim_feedforward=af_dim * 4,
+                dropout=config.dropout,
+                activation='gelu',
+                batch_first=True,
+            )
+
         self.classifier = nn.Sequential(
             nn.Dropout(config.dropout),
             nn.Linear(classifier_input_size, config.hidden_mlp_size),
@@ -271,7 +282,7 @@ class CrossAttentionTransformerEncoder(nn.Module):
 
     def forward(self, features, mask=None, key_padding_mask=None):
         """Forward pass for multi-layer cross-attention transformer encoder."""
-        
+
         acoustic = None
         if isinstance(features, (list, tuple)):
             if len(features) == 3:
@@ -304,6 +315,19 @@ class CrossAttentionTransformerEncoder(nn.Module):
                 src = self.norm_layers[i](src)
                 src = self.dropout(src)
 
+        # AF-as-token fusion via self-attention
+        if acoustic is not None and self.use_af_token:
+            af_token = self.acoustic_proj(acoustic).unsqueeze(1)  # (B, 1, af_dim)
+            if self.af_bottleneck:
+                src_down = self.af_down_proj(src)                  # (B, T, af_dim)
+                fused = torch.cat([af_token, src_down], dim=1)     # (B, 1+T, af_dim)
+                fused = self.af_self_attn(fused)                   # (B, 1+T, af_dim)
+                src = src + self.af_up_proj(fused[:, 1:, :])       # residual back to (B, T, 768)
+            else:
+                src = torch.cat([af_token, src], dim=1)            # (B, 1+T, 768)
+                src = self.af_self_attn(src)                        # (B, 1+T, 768)
+            acoustic = None  # consumed
+
         # Pooling strategy
         if self.pooling == 'mean':
             src = src.mean(dim=1)
@@ -311,9 +335,6 @@ class CrossAttentionTransformerEncoder(nn.Module):
             src = src[:, 0, :]
         elif 'attn' in self.pooling:
             src = self.attn_pooling(src, mask=mask)
-
-        if acoustic is not None:
-            src = torch.cat((src, acoustic), dim=1)
 
         output = self.classifier(src)
         if torch.isnan(output).any():
@@ -387,8 +408,26 @@ class BidirectionalCrossAttentionTransformerEncoder(nn.Module):
 
         init_mlp_size = config.hidden_size * 2 if 'concat' in self.fusion else config.hidden_size
 
-        if hasattr(config, 'use_acoustic_features') and config.use_acoustic_features:
-             init_mlp_size += config.num_acoustic_features
+        self.use_af_token = hasattr(config, 'use_acoustic_features') and config.use_acoustic_features
+        if self.use_af_token:
+            af_dim = getattr(config, 'af_hidden_size', init_mlp_size)
+            af_nheads = getattr(config, 'af_nheads', config.n_heads)
+            self.af_bottleneck = af_dim != init_mlp_size
+            self.acoustic_proj = nn.Sequential(
+                nn.Linear(config.num_acoustic_features, af_dim),
+                nn.LayerNorm(af_dim),
+            )
+            if self.af_bottleneck:
+                self.af_down_proj = nn.Linear(init_mlp_size, af_dim)
+                self.af_up_proj = nn.Linear(af_dim, init_mlp_size)
+            self.af_self_attn = nn.TransformerEncoderLayer(
+                d_model=af_dim,
+                nhead=af_nheads,
+                dim_feedforward=af_dim * 4,
+                dropout=config.dropout,
+                activation='gelu',
+                batch_first=True,
+            )
 
         self.classifier = nn.Sequential(
             nn.Dropout(config.dropout),
@@ -399,7 +438,7 @@ class BidirectionalCrossAttentionTransformerEncoder(nn.Module):
 
     def forward(self, features, mask=None, key_padding_mask=None):
         """Forward pass for multi-layer cross-attention transformer encoder."""
-        
+
         acoustic = None
         if isinstance(features, (list, tuple)):
             if len(features) == 3:
@@ -435,7 +474,7 @@ class BidirectionalCrossAttentionTransformerEncoder(nn.Module):
             if i < len(self.norm_layers_1):  # Apply normalization between layers
                 src1 = self.norm_layers_1[i](src1)
                 src1 = self.dropout(src1)
-        
+
         # Second embeddings
         src2 = memory.clone()
         memory2 = src.clone()
@@ -447,7 +486,6 @@ class BidirectionalCrossAttentionTransformerEncoder(nn.Module):
                 src2 = self.dropout(src2)
 
         # Fuse src1 and src2
-
         if 'concat' in self.fusion:
             src = torch.cat((src1, src2), dim=2)
         elif 'sum' in self.fusion:
@@ -458,15 +496,25 @@ class BidirectionalCrossAttentionTransformerEncoder(nn.Module):
             src = (src1 + src2) / 2
         else:
             src = src1 + src2
-            
+
+        # AF-as-token fusion via self-attention
+        if acoustic is not None and self.use_af_token:
+            af_token = self.acoustic_proj(acoustic).unsqueeze(1)
+            if self.af_bottleneck:
+                src_down = self.af_down_proj(src)
+                fused = torch.cat([af_token, src_down], dim=1)
+                fused = self.af_self_attn(fused)
+                src = src + self.af_up_proj(fused[:, 1:, :])
+            else:
+                src = torch.cat([af_token, src], dim=1)
+                src = self.af_self_attn(src)
+            acoustic = None  # consumed
+
         # Pooling strategy
         if self.pooling == 'mean':
             src = src.mean(dim=1)
         elif self.pooling == 'cls':
             src = src[:, 0, :]
-
-        if acoustic is not None:
-            src = torch.cat((src, acoustic), dim=1)
 
         return self.classifier(src)
 
@@ -482,17 +530,14 @@ class ElementWiseFusionEncoder(nn.Module):
 
         hidden_size = config.hidden_size * 2 if self.fusion == 'concat' else config.hidden_size
 
-        if hasattr(config, 'use_acoustic_features') and config.use_acoustic_features:
-             hidden_size += config.num_acoustic_features
-
         if 'mel' in self.model_name or 'egemaps' in self.model_name:
             self.mel_extractor = ResNetAudio(in_channels=1, out_channels=config.hidden_size, dropout=config.dropout)
-        
+
         self.encoder = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(
-                d_model=hidden_size, 
-                nhead=config.n_heads, 
-                dim_feedforward=config.intermediate_size, 
+                d_model=hidden_size,
+                nhead=config.n_heads,
+                dim_feedforward=config.intermediate_size,
                 dropout=config.dropout,
                 batch_first=True
             ),
@@ -500,14 +545,35 @@ class ElementWiseFusionEncoder(nn.Module):
         )
 
         self.pooling = config.pooling
-        
+
+        self.use_af_token = hasattr(config, 'use_acoustic_features') and config.use_acoustic_features
+        if self.use_af_token:
+            af_dim = getattr(config, 'af_hidden_size', hidden_size)
+            af_nheads = getattr(config, 'af_nheads', config.n_heads)
+            self.af_bottleneck = af_dim != hidden_size
+            self.acoustic_proj = nn.Sequential(
+                nn.Linear(config.num_acoustic_features, af_dim),
+                nn.LayerNorm(af_dim),
+            )
+            if self.af_bottleneck:
+                self.af_down_proj = nn.Linear(hidden_size, af_dim)
+                self.af_up_proj = nn.Linear(af_dim, hidden_size)
+            self.af_self_attn = nn.TransformerEncoderLayer(
+                d_model=af_dim,
+                nhead=af_nheads,
+                dim_feedforward=af_dim * 4,
+                dropout=config.dropout,
+                activation='gelu',
+                batch_first=True,
+            )
+
         self.classifier = nn.Sequential(
             nn.Dropout(config.dropout),
             nn.Linear(hidden_size, config.hidden_mlp_size),
             nn.ReLU(),
             nn.Linear(config.hidden_mlp_size, config.num_classes)
         )
-        
+
     def forward(self, features, mask=None, key_padding_mask=None):
         """Forward pass for multi-layer transformer encoder."""
 
@@ -543,17 +609,27 @@ class ElementWiseFusionEncoder(nn.Module):
             features = src + memory
         elif self.fusion == 'mul':
             features = src * memory
-        
+
         features = self.encoder(features, src_key_padding_mask=key_padding_mask)
-                
+
+        # AF-as-token fusion via self-attention
+        if acoustic is not None and self.use_af_token:
+            af_token = self.acoustic_proj(acoustic).unsqueeze(1)
+            if self.af_bottleneck:
+                feat_down = self.af_down_proj(features)
+                fused = torch.cat([af_token, feat_down], dim=1)
+                fused = self.af_self_attn(fused)
+                features = features + self.af_up_proj(fused[:, 1:, :])
+            else:
+                features = torch.cat([af_token, features], dim=1)
+                features = self.af_self_attn(features)
+            acoustic = None
+
         # Pooling strategy
         if self.pooling == 'mean':
             features = features.mean(dim=1)
         elif self.pooling == 'cls':
             features = features[:, 0, :]
-        
-        if acoustic is not None:
-            features = torch.cat((features, acoustic), dim=1)
 
         return self.classifier(features)
 
@@ -571,7 +647,7 @@ class MambaFusionEncoder(nn.Module):
         input_size = config.hidden_size * 2 if 'concat' in self.fusion else config.hidden_size
         
         # Project down to reduce Mamba size and prevent overfitting
-        self.mamba_hidden_size = 128
+        self.mamba_hidden_size = 128 # You can adjust this value
         self.input_proj = nn.Sequential(
             nn.Linear(input_size, self.mamba_hidden_size),
             nn.Dropout(config.dropout)
@@ -585,6 +661,7 @@ class MambaFusionEncoder(nn.Module):
             state_size=16,
             num_hidden_layers=config.n_layers,
             expand=2,
+            vocab_size=1, # Fix for 77M unused parameters
         )
         self.encoder = MambaModel(mamba_config)
 
@@ -592,25 +669,29 @@ class MambaFusionEncoder(nn.Module):
         self.dropout = nn.Dropout(config.dropout)
         
         classifier_input_size = self.mamba_hidden_size
-        if hasattr(config, 'use_acoustic_features') and config.use_acoustic_features:
-             classifier_input_size += config.num_acoustic_features
+
+        self.use_af_token = hasattr(config, 'use_acoustic_features') and config.use_acoustic_features
+        if self.use_af_token:
+            self.acoustic_proj = nn.Sequential(
+                nn.Linear(config.num_acoustic_features, self.mamba_hidden_size),
+                nn.LayerNorm(self.mamba_hidden_size),
+            )
+            self.af_self_attn = nn.TransformerEncoderLayer(
+                d_model=self.mamba_hidden_size,
+                nhead=4,
+                dim_feedforward=self.mamba_hidden_size * 4,
+                dropout=config.dropout,
+                activation='gelu',
+                batch_first=True,
+            )
 
         self.classifier = nn.Sequential(
             nn.Dropout(config.dropout),
             nn.Linear(classifier_input_size, config.hidden_mlp_size),
             nn.ReLU(),
-            nn.Dropout(config.dropout),
             nn.Linear(config.hidden_mlp_size, config.num_classes)
         )
-        
-        # Re-initialize the entire classifier to be sure
-        self.classifier = nn.Sequential(
-            nn.Dropout(config.dropout),
-            nn.Linear(classifier_input_size, config.hidden_mlp_size),
-            nn.ReLU(),
-            nn.Linear(config.hidden_mlp_size, config.num_classes)
-        )
-        
+
     def forward(self, features, mask=None, key_padding_mask=None):
         """Forward pass for multi-layer Mamba encoder."""
 
@@ -649,21 +730,25 @@ class MambaFusionEncoder(nn.Module):
             features = src * memory
         else:
             features = src + memory
-            
+
         # Project and apply dropout before Mamba
         features = self.input_proj(features)
-        
+
         features = self.encoder(inputs_embeds=features).last_hidden_state
         features = self.dropout(features)
-                
+
+        # AF-as-token fusion via self-attention
+        if acoustic is not None and self.use_af_token:
+            af_token = self.acoustic_proj(acoustic).unsqueeze(1)
+            features = torch.cat([af_token, features], dim=1)
+            features = self.af_self_attn(features)
+            acoustic = None
+
         # Pooling strategy
         if self.pooling == 'mean':
             features = features.mean(dim=1)
         elif self.pooling == 'cls':
             features = features[:, 0, :]
-
-        if acoustic is not None:
-            features = torch.cat((features, acoustic), dim=1)
 
         return self.classifier(features)
 
@@ -691,10 +776,29 @@ class MyTransformerEncoder(nn.Module):
         )
 
         self.pooling = config.pooling
-        
+
         classifier_input_size = config.hidden_size
-        if hasattr(config, 'use_acoustic_features') and config.use_acoustic_features:
-             classifier_input_size += config.num_acoustic_features
+
+        self.use_af_token = hasattr(config, 'use_acoustic_features') and config.use_acoustic_features
+        if self.use_af_token:
+            af_dim = getattr(config, 'af_hidden_size', config.hidden_size)
+            af_nheads = getattr(config, 'af_nheads', config.n_heads)
+            self.af_bottleneck = af_dim != config.hidden_size
+            self.acoustic_proj = nn.Sequential(
+                nn.Linear(config.num_acoustic_features, af_dim),
+                nn.LayerNorm(af_dim),
+            )
+            if self.af_bottleneck:
+                self.af_down_proj = nn.Linear(config.hidden_size, af_dim)
+                self.af_up_proj = nn.Linear(af_dim, config.hidden_size)
+            self.af_self_attn = nn.TransformerEncoderLayer(
+                d_model=af_dim,
+                nhead=af_nheads,
+                dim_feedforward=af_dim * 4,
+                dropout=config.dropout,
+                activation='gelu',
+                batch_first=True,
+            )
 
         self.classifier = nn.Sequential(
             nn.Dropout(config.dropout),
@@ -702,15 +806,7 @@ class MyTransformerEncoder(nn.Module):
             nn.ReLU(),
             nn.Linear(config.hidden_mlp_size, config.num_classes)
         )
-        
-        # Re-initialize the entire classifier to be sure
-        self.classifier = nn.Sequential(
-            nn.Dropout(config.dropout),
-            nn.Linear(classifier_input_size, config.hidden_mlp_size),
-            nn.ReLU(),
-            nn.Linear(config.hidden_mlp_size, config.num_classes)
-        )
-        
+
     def forward(self, features, mask=None, key_padding_mask=None):
         """Forward pass for multi-layer transformer encoder."""
 
@@ -725,16 +821,26 @@ class MyTransformerEncoder(nn.Module):
 
         if 'mel' in self.model_name or 'egemaps' in self.model_name:
             features = self.mel_extractor(features)
-        
+
         features = self.encoder(features, src_key_padding_mask=key_padding_mask)
-                
+
+        # AF-as-token fusion via self-attention
+        if acoustic is not None and self.use_af_token:
+            af_token = self.acoustic_proj(acoustic).unsqueeze(1)
+            if self.af_bottleneck:
+                feat_down = self.af_down_proj(features)
+                fused = torch.cat([af_token, feat_down], dim=1)
+                fused = self.af_self_attn(fused)
+                features = features + self.af_up_proj(fused[:, 1:, :])
+            else:
+                features = torch.cat([af_token, features], dim=1)
+                features = self.af_self_attn(features)
+            acoustic = None
+
         # Pooling strategy
         if self.pooling == 'mean':
             features = features.mean(dim=1)
         elif self.pooling == 'cls':
             features = features[:, 0, :]
-        
-        if acoustic is not None:
-            features = torch.cat((features, acoustic), dim=1)
 
         return self.classifier(features)
