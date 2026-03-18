@@ -1,0 +1,14 @@
+
+============================================================
+Model Architecture Summary
+============================================================
+Model Type: CrossAttentionTransformerEncoder
+Total Parameters: 8,467,459 (8.47M)
+
+Parameter Breakdown:
+  layers                   :    8,268,288 (  8.27M)
+  norm_layers              :            0 (  0.00M)
+  dropout                  :            0 (  0.00M)
+  classifier               :      199,171 (  0.20M)
+============================================================
+Epoch 1:   0%|          | 4/1000 [00:09<40:10,  2.42s/it]

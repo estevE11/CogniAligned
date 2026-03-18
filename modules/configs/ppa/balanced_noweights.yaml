@@ -24,6 +24,8 @@ model:
   fusion: 'crossgated'
   use_acoustic_features: True
   num_acoustic_features: 55
+  af_hidden_size: 64
+  af_nheads: 4
 
 data:
   train_dir: "/home/usuaris/veussd/roger.esteve.sanchez/WAB_samples"

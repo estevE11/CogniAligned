@@ -1,0 +1,126 @@
+_wandb:
+    value:
+        cli_version: 0.25.0
+        e:
+            zblg9z248g25lc0ikqykmduqkqcyz6vx:
+                args:
+                    - --config
+                    - configs/amyloid/default.yaml
+                cpu_count: 4
+                cpu_count_logical: 4
+                disk:
+                    /:
+                        total: "19342737408"
+                        used: "17912184832"
+                email: rogeresteve30@gmail.com
+                executable: /home/usuaris/veussd/roger.esteve.sanchez/CogniAligned/.venv/bin/python3
+                git:
+                    commit: cbfe42a2d5f00eae2fb67e49196d1449ebde7d8c
+                    remote: https://github.com/estevE11/CogniAligned
+                host: veue03
+                memory:
+                    total: "8315248640"
+                os: Linux-5.15.0-84-generic-x86_64-with-glibc2.35
+                program: -m amyloid.main
+                python: CPython 3.10.12
+                root: /home/usuaris/veussd/roger.esteve.sanchez/CogniAligned/modules
+                startedAt: "2026-03-16T16:37:54.122758Z"
+                writerId: zblg9z248g25lc0ikqykmduqkqcyz6vx
+        m: []
+        python_version: 3.10.12
+        t:
+            "1":
+                - 1
+                - 5
+                - 11
+                - 49
+                - 53
+            "2":
+                - 1
+                - 5
+                - 11
+                - 49
+                - 53
+            "3":
+                - 1
+                - 2
+                - 13
+                - 16
+            "4": 3.10.12
+            "5": 0.25.0
+            "6": 5.3.0
+            "12": 0.25.0
+            "13": linux-x86_64
+audio_model:
+    value: wav2vec2
+batch_size:
+    value: 16
+cross_validation:
+    value: true
+cross_validation_folds:
+    value: 5
+dataset:
+    value: WAB_Amyloid
+dropout:
+    value: 0.3
+early_stopping:
+    value: true
+early_stopping_patience:
+    value: 20
+fold:
+    value: 0
+fusion_type:
+    value: crossgated
+gradient_clip_norm:
+    value: 1
+hidden_mlp_size:
+    value: 256
+hidden_size:
+    value: 768
+intermediate_size:
+    value: 3072
+learning_rate:
+    value: 5e-06
+loss_function:
+    value: BCEWithLogitsLoss
+lr_scheduler:
+    value: cosine
+lr_warmup_steps:
+    value: 20
+model_name:
+    value: distil_wav2vec2_P_crossgated
+model_type:
+    value: CrossAttentionTransformerEncoder
+multimodality:
+    value: true
+num_classes:
+    value: 1
+num_epochs:
+    value: 100
+num_heads:
+    value: 12
+num_layers:
+    value: 1
+optimizer:
+    value: AdamW
+parameters_by_component:
+    value:
+        classifier: 198657
+        dropout: 0
+        layers: 8268288
+        norm_layers: 0
+        total: 8466945
+pauses:
+    value: true
+pooling_strategy:
+    value: mean
+slurm_job_id:
+    value: null
+textual_model:
+    value: distil
+total_parameters:
+    value: 8466945
+total_parameters_millions:
+    value: 8.47
+weight_decay:
+    value: 0.1

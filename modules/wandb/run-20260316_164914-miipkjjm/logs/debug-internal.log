@@ -1,0 +1,6 @@
+{"time":"2026-03-16T16:49:15.194489118+01:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-03-16T16:49:16.879300925+01:00","level":"INFO","msg":"stream: created new stream","id":"miipkjjm"}
+{"time":"2026-03-16T16:49:16.879988126+01:00","level":"INFO","msg":"handler: started","stream_id":"miipkjjm"}
+{"time":"2026-03-16T16:49:16.882749202+01:00","level":"INFO","msg":"stream: started","id":"miipkjjm"}
+{"time":"2026-03-16T16:49:16.883727649+01:00","level":"INFO","msg":"writer: started","stream_id":"miipkjjm"}
+{"time":"2026-03-16T16:49:16.884181076+01:00","level":"INFO","msg":"sender: started","stream_id":"miipkjjm"}

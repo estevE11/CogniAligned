@@ -1,0 +1,36 @@
+data:
+  csv_labels_path: /home/usuaris/veussd/roger.esteve.sanchez/WAB_samples/labels.csv
+  root_audio_path: /home/usuaris/veussd/roger.esteve.sanchez/WAB_samples/
+  root_text_path: /home/usuaris/veussd/roger.esteve.sanchez/WAB_samples/text/
+  splits_path: /home/usuaris/veussd/roger.esteve.sanchez/WAB_samples/splits/
+  train_dir: /home/usuaris/veussd/roger.esteve.sanchez/WAB_samples
+model:
+  audio_model: wav2vec2
+  dropout: 0.3
+  fusion: crossgated
+  hidden_mlp_size: 256
+  hidden_size: 768
+  intermediate_size: 3072
+  model_name: distil_wav2vec2_P_crossgated
+  multimodality: true
+  n_heads: 12
+  n_layers: 1
+  num_classes: 3
+  pauses: true
+  pooling: mean
+  textual_model: distil
+model_name: distil_wav2vec2_P_crossgated
+path_name: distil_wav2vec2_P_crossgated_mean
+train:
+  batch_size: 32
+  cross_validation: true
+  cross_validation_folds: 5
+  early_stopping: true
+  early_stopping_patience: 15
+  learning_rate: 2.0e-05
+  num_epochs: 200
+  weight_decay: 0.1
+wandb:
+  entity: ''
+  mode: online
+  project: CogniAligned-PPA

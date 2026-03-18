@@ -1,0 +1,137 @@
+
+============================================================
+Model Architecture Summary
+============================================================
+Model Type: CrossAttentionTransformerEncoder
+Total Parameters: 8,466,945 (8.47M)
+
+Parameter Breakdown:
+  layers                   :    8,268,288 (  8.27M)
+  norm_layers              :            0 (  0.00M)
+  dropout                  :            0 (  0.00M)
+  classifier               :      198,657 (  0.20M)
+============================================================
+Epoch 3:   1%|          | 5/900 [00:17<15:22,  1.03s/it]
+
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.
+⚠️ Warning: NaN detected in predictions! Skipping batch.

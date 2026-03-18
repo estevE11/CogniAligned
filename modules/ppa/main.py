@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from ppa.dataset import get_dataloaders, set_splits
 from utils import set_seed, get_config, train, save_config
-from model import CrossAttentionTransformerEncoder, MyTransformerEncoder, BidirectionalCrossAttentionTransformerEncoder, ElementWiseFusionEncoder, MambaFusionEncoder
+from model import CrossAttentionTransformerEncoder, MyTransformerEncoder, BidirectionalCrossAttentionTransformerEncoder, ElementWiseFusionEncoder
 from model_utils import log_model_summary_to_wandb
 import torch
 import wandb
@@ -24,9 +24,7 @@ def set_up(config, train_dataloader, device, fold=0):
     set_seed(43)
     
     if config.model.multimodality:
-        if 'mamba' in config.model.fusion:
-            model = MambaFusionEncoder(config.model).to(device)
-        elif 'bicross' in config.model.fusion:
+        if 'bicross' in config.model.fusion:
             model = BidirectionalCrossAttentionTransformerEncoder(config.model).to(device)
         elif 'cross' in config.model.fusion:
             model = CrossAttentionTransformerEncoder(config.model).to(device)
@@ -169,6 +167,6 @@ if __name__ == '__main__':
 
     config_path = sys.argv[sys.argv.index('--config') + 1]
     config = get_config(config_path)
-    
-    save_config(config)    
+    save_config(config)
+    config.path_name = f"ppa_{config.path_name}"
     main(config)

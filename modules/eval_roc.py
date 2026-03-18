@@ -41,7 +41,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__)))
 from utils import set_seed, get_config, save_config
 from model import (CrossAttentionTransformerEncoder, MyTransformerEncoder,
                    BidirectionalCrossAttentionTransformerEncoder,
-                   ElementWiseFusionEncoder, MambaFusionEncoder)
+                   ElementWiseFusionEncoder)
 from sklearn.metrics import roc_auc_score
 
 
@@ -63,15 +63,15 @@ def parse_args():
                         help='Human-readable model label for plots (e.g. "CogniAlign + AF").')
     parser.add_argument('--output', type=str, default=None,
                         help='Output JSON path. Default: roc_data/<task>_<label>_fold<N>.json')
+    parser.add_argument('--cpu', action='store_true',
+                        help='Force CPU inference even if CUDA is available.')
     return parser.parse_args()
 
 
 def build_model(config, device):
     """Instantiate the right model architecture from config."""
     if config.model.multimodality:
-        if 'mamba' in config.model.fusion:
-            model = MambaFusionEncoder(config.model).to(device)
-        elif 'bicross' in config.model.fusion:
+        if 'bicross' in config.model.fusion:
             model = BidirectionalCrossAttentionTransformerEncoder(config.model).to(device)
         elif 'cross' in config.model.fusion:
             model = CrossAttentionTransformerEncoder(config.model).to(device)
@@ -99,7 +99,10 @@ def main():
     args = parse_args()
 
     set_seed(43)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if args.cpu:
+        device = torch.device('cpu')
+    else:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
     # Load config

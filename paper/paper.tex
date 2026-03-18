@@ -1,19 +1,19 @@
 \documentclass{Odyssey2026}
 
-% 2023-10-21 modified by Simon King (Simon.King@ed.ac.uk)  
-% 2024-01 modified by TPC Chairs of Interspeech 2024  
+% 2023-10-21 modified by Simon King (Simon.King@ed.ac.uk)
+% 2024-01 modified by TPC Chairs of Interspeech 2024
 % 2024-10 modified by Antoine Serrurier for Interspeech 2025
 % 2024-12 modified by TPC Chairs of Interspeech 2025
 
 % **************************************
 % *    DOUBLE-BLIND REVIEW SETTINGS    *
 % **************************************
-% Comment out \interspeechcameraready when submitting the 
+% Comment out \interspeechcameraready when submitting the
 % paper for review.
 % If your paper is accepted, uncomment this to produce the
 %  'camera ready' version to submit for publication.
 
- %\interspeechcameraready 
+ %\interspeechcameraready
 
 
 % **************************************
@@ -29,7 +29,7 @@
 % **************************************
 
 % title here must exactly match the title entered into the paper submission system
-\title{Deep learning based analysis of spontaneous speech for diagnostic classification and biomarker prediction in Alzheimer’s disease and primary progressive aphasia 
+\title{Deep learning based analysis of spontaneous speech for diagnostic classification and biomarker prediction in Alzheimer’s disease and primary progressive aphasia
 }
 
 % the order of authors here must exactly match the order entered into the paper submission system
@@ -58,8 +58,8 @@
 
 % MARC + PILAR
 \begin{abstract}
-    
-Differential diagnosis between Alzheimer’s disease (AD) phenotypes and Primary Progressive Aphasia (PPA) variants remains a significant clinical challenge due to overlapping symptomatic profiles. Furthermore, identifying underlying beta-amyloid pathology typically requires invasive or costly procedures. This study evaluates the utility of a deep learning-based spontaneous speech analysis for diagnostic classification and biomarker prediction in AD and PPA. While existing models are biased toward English-language datasets, this study addresses a linguistic gap by benchmarking our framework on the IS2021 ADReSSo challenge and extending its application to a unique Spanish-speaking cohort from the Sant Pau Initiative on Neurodegeneration (SPIN). Our architecture leverages a deep learning system that integrates state-of-the-art encoders for AD detection and audio processing. Our approach integrates acoustic and linguistic features for the automated clinical phenotyping of neurodegenerative diseases.
+
+Differential diagnosis between Alzheimer’s disease (AD) phenotypes and Primary Progressive Aphasia (PPA) variants remains a significant clinical challenge due to overlapping symptomatic profiles. Furthermore, identifying underlying ($A\beta$) pathology typically requires invasive or costly procedures. This study evaluates the utility of a deep learning-based spontaneous speech analysis for diagnostic classification and biomarker prediction in AD and PPA. While existing models are biased toward English-language datasets, this study addresses a linguistic gap by benchmarking our framework on the IS2021 ADReSSo challenge and extending its application to a unique Spanish-speaking cohort from the Sant Pau Initiative on Neurodegeneration (SPIN). Our architecture leverages a deep learning system that integrates state-of-the-art encoders for AD detection and audio processing. Our approach integrates acoustic and linguistic features for the automated clinical phenotyping of neurodegenerative diseases.
 \end{abstract}
 
 
@@ -78,12 +78,37 @@ CogniAlign \cite{ORTIZPEREZ2025114264}
 
 % MARC + PILAR ()
 \section{Related work}
-Aqui va el related work
+Early computational approaches to Alzheimer’s Disease (AD) focused primarily on distinguishing symptomatic patients from healthy controls using linguistic and acoustic features. Fraser et al. (2015) established a foundation for this by achieving over 81\% accuracy in AD detection using narrative speech. More recently, researchers have shifted toward the more challenging task of predicting biological pathology, specifically $A\beta$ 
+positivity, which often precedes clinical symptoms.
 
+Much of the foundational work in ($A\beta$) prediction utilizes machine learning (ML) models, such as Random Forest and SVM. Fristed et al. (2022) demonstrated the viability of speech-based ($A\beta$) screening, reporting an Area Under the Curve (AUC) of 0.77 for the full sample, rising to 0.82 in symptomatic subsamples. Similarly, Gabirondo et al. (2025) explored ($A\beta$) status in cognitively unimpaired Spanish-speaking adults. By utilizing a fusion of acoustic and lexical-semantic features, they achieved an AUC of 0.67, with a notable specificity of 80.9\%, suggesting that while speech contains detectable signals for early amyloid burden, the task remains highly challenging before the onset of overt clinical symptoms. In the context of Primary Progressive Aphasia (PPA), Slegers et al. (2021) found that connected speech markers could identify amyloid burden with 77\% classification accuracy (74\% sensitivity; 79\% specificity). These results underscore that while acoustic and linguistic markers are predictive, there is a performance gap that newer deep learning architectures aim to close.
+
+The field is currently transitioning from ML toward end-to-end deep learning. LIMA et al. (2025) recently evaluated the DementiaBank from ADReSSo challenge, noting that while traditional Random Forest models achieve sensitivities around 69-70\%, conventional acoustic features typically yield accuracies in the 71.3\% range. In their review, Ding et al. (2024) identify deep learning models that leverage large-scale pre-trained architectures. The integration of acoustic features with linguistic embeddings, particularly those from models like BERT, has pushed AD detection accuracies above 85\%. This evolution suggests that multi-pipeline systems, which combine self-supervised learning (SSL) audio processing with high-fidelity transcriptions, may be most promising for identifying the subtle, non-linear patterns associated with beta-amyloid pathology.
+
+The differential diagnosis of Primary Progressive Aphasia (PPA) variants—non-fluent (nfvPPA), semantic (svPPA), and logopenic (lvPPA)—remains a significant clinical challenge due to overlapping symptomatic profiles. Recent advances in Artificial Intelligence (AI) have sought to automate this process by moving from manual feature engineering to end-to-end deep learning architectures.
+
+High-dimensional linguistic and acoustic analysis has shown remarkable potential in multi-class separation. Rezaii et al. (2023) achieved a state-of-the-art accuracy of 97.9\% in a four-way classification task using linguistic features. Cho et al. (2020) demonstrated that combining lexical and acoustic features allows for high-accuracy discrimination, distinguishing patients from controls in over 90\% of cases and separating svPPA from nfvPPA with 89\% accuracy. However, these approaches rely on labor-intensive manual coding of speech. Our approach differs by utilizing an end-to-end deep learning architecture. Themistocleous et al. (2018) found that while Random Forest models were effective for nfvPPA (82\%), accuracies were lower for svPPA (66\%) and lvPPA (57\%), suggesting that acoustic-only models may struggle with lexical-semantic nuances.
+
+A growing body of literature highlights specific acoustic ``fingerprints'' that differentiate the variants. Cho et al.\ (2021) identified six critical language measures that distinguish patient groups, including pause rate, fillers, and lexical diversity. Cordella et al.\ (2017) found that articulation rate could distinguish nfvPPA from svPPA with an AUC of 0.96. Building on this, Haley et al.\ (2020) introduced a more sophisticated temporal metric, Narrative Syllable Duration (NSD). Their study found that NSD---the mean duration of syllable strings uninterrupted by long pauses---could differentiate nfvPPA from lvPPA with near-perfect accuracy (AUC = 1.000 in picture description tasks). Furthermore, Nevler et al.\ (2019) found that fundamental frequency ($f_0$) range and pause rate could distinguish nfvPPA from svPPA (AUC = 0.86). These findings validate the inclusion of dedicated acoustic pipelines in deep learning models to capture the rhythmic and prosodic deviations characteristic of each variant.
+
+A critical gap remains in applying these models to non-English datasets, where linguistic structures differ. Our study addresses this by focusing on Spanish-language speech. Recent work by Pugalenthi et al. (2025) on Catalan-Spanish bilinguals underscores this complexity, finding that acoustic-based classifiers achieved F1 scores of 86\% in a patient's non-dominant language, while linguistic-based classifiers hovered between 73\% and 77\%. 
 \section{Methodology}
 
-\subsection{Overview}
 This study proposes a multimodal deep learning framework designed to analyze spontaneous speech for the detection of neurodegenerative diseases. The system processes both acoustic and linguistic information extracted from speech samples. The core methodology involves extracting high-level representations from raw audio and automatic transcriptions using state-of-the-art pre-trained encoders, followed by a fusion mechanism that integrates these modalities to perform diagnostic classification. We investigate two distinct architectures: a baseline model (SER2025) and our proposed architecture (CogniAlign). Both models are designed to handle the variable length of spontaneous speech and leverage transfer learning from large-scale pre-trained models.
+
+\subsection{Acoustic Feature Enhancement}
+
+In addition to the deep representations extracted by the SSL encoders, we integrate a set of 55 handcrafted acoustic features to capture fine-grained paralinguistic cues that may be indicative of cognitive decline. The feature extraction methodology is adapted from Ntampakis et al. \cite{ntampakis2025neuroxvocal}, whose NeuroXVocal framework for non-invasive Alzheimer's detection demonstrated the effectiveness of this acoustic feature set on the ADReSSo benchmark. Our implementation follows their pipeline and extends it to the multilingual SPIN cohort. Features are extracted directly from the raw audio signal using librosa and Praat-based analysis (via parselmouth) and encompass several categories:
+
+\begin{itemize}
+    \item \textbf{Temporal and Pause Features}: Total speech duration, speech-to-pause ratio, number of pauses, average/maximum/standard deviation of pause durations. These features capture hesitation patterns and speech fluency disruptions commonly observed in neurodegenerative conditions.
+    \item \textbf{Prosodic Features}: Pitch statistics (mean, standard deviation, range), intensity measures, speaking rate, and articulation rate. These reflect the melodic and rhythmic aspects of speech production.
+    \item \textbf{Voice Quality Features}: Local jitter and shimmer, and harmonics-to-noise ratio (HNR). These capture voice stability and phonation quality.
+    \item \textbf{Spectral Features}: Spectral centroid statistics, zero-crossing rate, and formant frequencies (F1, F2, F3 with mean and standard deviation). These characterize the spectral envelope and articulatory patterns.
+    \item \textbf{Cepstral Features}: The first 13 Mel-Frequency Cepstral Coefficients (MFCCs) with their mean and standard deviation, providing a compact representation of the spectral shape.
+\end{itemize}
+
+These acoustic features are integrated via \textbf{late fusion}: after the cross-attention mechanism and temporal pooling, the resulting fixed-size embedding is concatenated with the 55-dimensional acoustic feature vector before being passed to the classification MLP. This strategy allows the model to leverage both the high-level semantic and contextual representations learned by the deep encoders and the interpretable, low-level acoustic markers that have been traditionally associated with speech pathology assessment. Both the SER2025 baseline and the CogniAlign architecture support this acoustic feature enhancement module. Future work will include modified architecture diagrams illustrating the integration of the acoustic feature branch into each model.
 
 \subsection{Proposed Architectures}
 
@@ -105,46 +130,36 @@ We also evaluate the CogniAlign architecture, recently proposed by Ortiz-Perez e
     \item \textbf{Classification}: The fused representation is processed by a transformer encoder layer to capture higher-order dependencies, followed by an attention-based pooling or mean pooling strategy to obtain a fixed-size vector. This vector is then fed into a classification head to produce the final diagnostic prediction.
 \end{itemize}
 
-\subsubsection{Acoustic Feature Enhancement}
-In addition to the deep representations extracted by the SSL encoders, we integrate a set of 55 handcrafted acoustic features to capture fine-grained paralinguistic cues that may be indicative of cognitive decline. Following the feature extraction methodology proposed by Ntampakis et al. \cite{ntampakis2025neuroxvocal}, these features are extracted directly from the raw audio signal and encompass several categories:
-
-\begin{itemize}
-    \item \textbf{Temporal and Pause Features}: Total speech duration, speech-to-pause ratio, number of pauses, average/maximum/standard deviation of pause durations. These features capture hesitation patterns and speech fluency disruptions commonly observed in neurodegenerative conditions.
-    \item \textbf{Prosodic Features}: Pitch statistics (mean, standard deviation, range), intensity measures, speaking rate, and articulation rate. These reflect the melodic and rhythmic aspects of speech production.
-    \item \textbf{Voice Quality Features}: Local jitter and shimmer, and harmonics-to-noise ratio (HNR). These are extracted using Praat-based analysis and capture voice stability and phonation quality.
-    \item \textbf{Spectral Features}: Spectral centroid statistics, zero-crossing rate, and formant frequencies (F1, F2, F3 with mean and standard deviation). These features characterize the spectral envelope and articulatory patterns.
-    \item \textbf{Cepstral Features}: The first 13 Mel-Frequency Cepstral Coefficients (MFCCs) with their mean and standard deviation, providing a compact representation of the spectral characteristics.
-\end{itemize}
-
-These acoustic features are integrated via \textbf{late fusion}: after the cross-attention mechanism and temporal pooling, the resulting fixed-size embedding is concatenated with the 55-dimensional acoustic feature vector before being passed to the classification MLP. This strategy allows the model to leverage both the high-level semantic and contextual representations learned by the deep encoders and the interpretable, low-level acoustic markers that have been traditionally associated with speech pathology assessment. Both the SER2025 baseline and the CogniAlign architecture support this acoustic feature enhancement module.
-
 \section{Experimental Setup}
 
 \subsection{Datasets}
 We evaluate our models on two distinct datasets, covering different languages and pathologies.
 
-\textbf{ADReSSo-IS2021}: The Alzheimer’s Dementia Recognition through Spontaneous Speech only (ADReSSo) dataset \cite{14} consists of spontaneous speech recordings from the Pitt Corpus. It contains 237 audio files (approx. 166 minutes) of picture description tasks performed by English-speaking participants. The dataset is balanced between Alzheimer’s Disease (AD) patients and Control Normal (CN) subjects. We use this dataset for benchmarking our models on a standard task.
+\textbf{ADReSSo-IS2021}: The Alzheimer’s Dementia Recognition through Spontaneous Speech only (ADReSSo) dataset \cite{14} is a well-established benchmark derived from the DementiaBank Pitt Corpus, consisting of 237 picture description recordings (approx. 166 minutes) from English-speaking participants balanced between Alzheimer’s Disease (AD) and Control Normal (CN) subjects. We use it to benchmark our models against the state of the art.
 
-\textbf{WAV\_Samples (SPIN Cohort)}: We utilize a private dataset from the Sant Pau Initiative on Neurodegeneration (SPIN). This dataset comprises spontaneous speech recordings from Spanish and Catalan speakers. The samples are processed using a sliding window approach with 14-second windows and 10.5-second stride. Automatic transcriptions are generated using the Whisper ASR model ("tiny" variant for efficiency). We define two specific tasks on this dataset:
-\begin{itemize}
-    \item \textbf{Beta-Amyloid Prediction}: A binary classification task to predict amyloid positivity status (Positive vs. Negative), a key biomarker for Alzheimer's pathology.
-    \item \textbf{Primary Progressive Aphasia (PPA) Classification}: A 3-class classification problem distinguishing between PPA variants: non-fluent/agrammatic (PPA-G), semantic (PPA-S), and logopenic (PPA-L).
-\end{itemize}
+\textbf{SPIN Cohort}: The Sant Pau Initiative on Neurodegeneration (SPIN) is a longitudinal clinical cohort at Hospital de la Santa Creu i Sant Pau (Barcelona), specializing in the study and early diagnosis of neurodegenerative diseases. We use a private dataset derived from this cohort, comprising spontaneous speech recordings from Spanish and Catalan speakers with clinical diagnoses of Alzheimer’s disease, beta-amyloid pathology, or one of three Primary Progressive Aphasia (PPA) variants: logopenic (lvPPA), non-fluent/agrammatic (nfPPA), and semantic (svPPA). A 5-fold cross-validation scheme stratified by patient identity is applied to ensure no subject overlap between training and validation splits.
+
+We define two tasks on this dataset, illustrated in Figure~\ref{fig:class_balance}. The \textbf{Beta-Amyloid Prediction} task is a binary classification problem aiming to predict amyloid positivity (positive vs. negative), a key pathological biomarker for AD that typically requires costly or invasive procedures to obtain. The class distribution is approximately balanced (96 negative, 113 positive), lending reasonable reliability to the reported results. The \textbf{PPA Classification} task is a 3-class problem distinguishing between lvPPA, nfPPA, and svPPA (104, 63, and 35 samples respectively). This task is considerably more challenging due to the marked class imbalance, with svPPA representing fewer than a third of the lvPPA samples. The limited number of patients per class means that performance estimates are subject to high variance across folds and that results for the PPA task should be interpreted with caution.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\columnwidth]{class_balance.pdf}
+    \caption{Class distribution in the SPIN cohort for the Beta-Amyloid prediction task (left) and the PPA classification task (right).}
+    \label{fig:class_balance}
+\end{figure}
 
 \subsection{Training Details}
-All models are trained using the PyTorch framework. For the ADReSSo dataset, we follow the standard train/test split provided by the challenge. For the SPIN dataset, we employ a 5-fold cross-validation scheme stratified by patient ID to ensure no subject overlap between training and validation sets.
+All models are trained using the PyTorch framework. For the ADReSSo dataset, we follow the standard train/test split provided by the challenge. For the SPIN dataset, we employ a 5-fold cross-validation scheme stratified by patient ID to ensure no subject overlap between training and validation sets. All recordings are truncated to the first 40 seconds of speech, which approximates the effective input length used by CogniAlign and avoids including clinician speech that sometimes appears at the end of the recordings.
 
 Optimization is performed using AdamW with a learning rate of $1e-4$ for the baseline and $2e-5$ for CogniAlign, with a weight decay of 0.01. We use a cosine annealing learning rate scheduler with warmup. The batch size is set to 32. To mitigate class imbalance, we employ a weighted Cross-Entropy loss where class weights are inversely proportional to their frequency.
 
 For the SER2025 baseline, data augmentation is applied during training, including reverberation, additive background noise, and speed perturbation, to improve robustness. CogniAlign focuses on architectural regularization through dropout (0.1-0.3) and layer normalization.
 
-\subsection{Transfer Learning Strategy}
-Given the scarcity of labeled data in the target domain (SPIN cohort), we adopt a transfer learning strategy. We first train our models on the ADReSSo dataset (English) to learn general representations of pathological speech associated with cognitive decline. We then fine-tune these pre-trained models on the specific tasks of the SPIN dataset (Amyloid and PPA). This approach aims to leverage cross-lingual features of neurodegeneration, hypothesizing that acoustic markers of cognitive impairment share commonalities across languages.
+Given the scarcity of labeled data in the target domain (SPIN cohort), we additionally explore a transfer learning strategy. We first train our models on the ADReSSo dataset (English) to learn general representations of pathological speech associated with cognitive decline, and then fine-tune these pre-trained models on the SPIN tasks (Amyloid and PPA). This approach aims to leverage cross-lingual acoustic markers of neurodegeneration, hypothesizing that features of cognitive impairment share commonalities across languages.
 
-\subsection{Evaluation Details}
-Model performance is evaluated using accuracy, macro-averaged F1-score, recall, and precision. For the binary classification tasks (AD and Amyloid), we also report sensitivity and specificity where applicable. In the SPIN dataset, performance is aggregated across the cross-validation folds. For the ADReSSo challenge, we report results on the held-out test set (or validation set depending on availability).
 
 \section{Results}
+Our experimental evaluation focuses on three primary tasks: AD classification on the ADReSSo benchmark, and beta-amyloid prediction and PPA classification on the Spanish-speaking SPIN cohort. Performance is assessed using accuracy (Acc), macro-averaged F1-score (F1), recall (Rec), and precision (Prec).
 
 \footnotetext[1]{AF = 55 handcrafted acoustic features (temporal, pause, prosodic, voice quality, spectral, cepstral) extracted via Praat and librosa, Z-score normalised, integrated via late fusion before the classifier MLP.}
 
@@ -168,6 +183,9 @@ Model performance is evaluated using accuracy, macro-averaged F1-score, recall, 
     % Old runs (128-dim, different LR): no AF=81.40% acc (job 2396107), +AF=80.72/80.45/81.31/80.41 (job 2397245)
 \end{table}
 
+\subsection{ADReSSo IS2021 Challenge}
+Table 1 presents the performance on the ADReSSo IS2021 challenge, a binary classification task to distinguish AD from control normal (CN) subjects. The CogniAlign architecture significantly outperforms the SER2025 baseline across all metrics. Without additional acoustic features (AF), CogniAlign achieves an accuracy of 87.20\% and an F1-score of 87.10\%, compared to SER2025's 79.69\% accuracy and 75.81\% F1-score. The integration of 55 handcrafted acoustic features (AF) provides a modest boost for CogniAlign, reaching 87.84\% accuracy and 87.56\% F1-score, suggesting that while deep learning models capture much of the relevant information, these low-level features still contribute to a more robust representation. For SER2025, the inclusion of AF yields a slight decrease in accuracy (79.34\%) but a small improvement in F1-score (77.23\%), indicating a rebalancing of precision and recall.
+
 \begin{table}[h]
     \centering
     \caption{Results on beta-amyloid prediction (binary: positive vs negative), no transfer learning.}
@@ -186,6 +204,20 @@ Model performance is evaluated using accuracy, macro-averaged F1-score, recall, 
     % SER2025+AF: 5/5 folds, 256-dim, 40s window. Fold0=70.59/70.49/70.83/71.05, Fold1=79.41/78.52/79.15/78.21, Fold2=69.05/67.45/68.44/71.47, Fold3=72.73/71.17/70.88/72.80, Fold4=79.31/78.66/78.49/79.64. Avg=74.22/73.26/73.56/74.63 (UPDATED, was 71.46)
     % CogniAlign+AF (token fusion): job 2397677, done. Fold0=82.35, Fold1=78.79, Fold2=77.14, Fold3=80.65, Fold4=79.41
 \end{table}
+
+\subsection{Beta-Amyloid Prediction (SPIN Cohort)}
+Table 2 presents the results for beta-amyloid prediction on the SPIN cohort, without transfer learning. This is a challenging binary classification task, and CogniAlign again demonstrates superior performance. CogniAlign achieves 79.70\% accuracy and 78.90\% F1-score, significantly outperforming SER2025 (60.22\% accuracy, 52.12\% F1-score). 
+
+A key finding is the differential impact of handcrafted acoustic features (AF) across architectures. The inclusion of AF features dramatically improves the SER2025 baseline, bringing its accuracy from 60.22\% to 74.22\% and F1-score to 73.26\%, indicating that the baseline model requires these explicit cues to effectively process the audio modality. In contrast, for CogniAlign, AF provides only a marginal improvement in F1-score (79.20\%) while maintaining similar accuracy. This suggests that CogniAlign's advanced gated cross-attention mechanism is likely already capturing the relevant low-level prosodic and spectral cues naturally from the SSL representations, rendering the additional handcrafted features largely redundant.
+
+Beyond standard classification metrics, we evaluated the models' discriminative capacity across various thresholds using Receiver Operating Characteristic (ROC) analysis (Figure~\ref{fig:roc_amyloid}). CogniAlign (with acoustic features) achieved an impressive Area Under the Curve (AUC) of 0.803 $\pm$ 0.051 across the 5 folds. In contrast, the SER2025 baseline performed near chance level with an AUC of 0.518 $\pm$ 0.110. This substantial gap in AUC underscores CogniAlign's superior ability to rank patient risk for beta-amyloid pathology, a critical requirement for clinical screening tools.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=1\linewidth]{roc_amyloid.pdf}
+    \caption{Receiver Operating Characteristic (ROC) curve for the Beta-Amyloid prediction task. CogniAlign+AF achieves a strong AUC of 0.803, significantly outperforming the SER2025 baseline (AUC=0.518).}
+    \label{fig:roc_amyloid}
+\end{figure}
 
 \begin{table}[h]
     \centering
@@ -206,6 +238,11 @@ Model performance is evaluated using accuracy, macro-averaged F1-score, recall, 
     % Also ran ad_cv (PPA+AF) 5/5 folds: Avg=71.17/54.93/56.41/60.57 — ppa_af 4/5 folds was better on Acc
     % CogniAlign+AF (token fusion): job 2397678, done. Fold0=74.36, Fold1=66.67, Fold2=70.73, Fold3=79.49, Fold4=62.50
 \end{table}
+
+\subsection{PPA 3-Class Classification (SPIN Cohort)}
+The PPA 3-class classification task, differentiating between lvPPA, nfPPA, and svPPA, is presented in Table 3. This task is particularly challenging due to inherent class imbalance (with svPPA representing fewer than a third of the lvPPA samples) and the subtle distinctions between PPA variants. To mitigate this, we employed a weighted Cross-Entropy loss as described in Section 4.2, though results should still be interpreted with caution. 
+
+CogniAlign again demonstrates higher F1-scores (66.60\%) and recall (67.60\%) compared to SER2025 (48.72\% F1, 51.60\% recall), even though their accuracies are similar (73.30\% vs. 67.97\%). Notably, while the baseline SER2025 heavily relies on the addition of handcrafted acoustic features (AF) to achieve competitive performance, CogniAlign's performance slightly drops when these are introduced. This suggests that CogniAlign's gated cross-attention mechanism successfully extracts essential low-level prosodic and spectral cues directly from the SSL embeddings. Consequently, CogniAlign eliminates the need for complex, manual feature extraction pipelines (such as Praat and librosa), offering a more streamlined and computationally efficient end-to-end clinical tool. This further supports the hypothesis that for the more sophisticated CogniAlign architecture, adding handcrafted features may introduce unnecessary noise, whereas the weaker baseline relies on them to compensate for its less efficient multimodal integration.
 
 \begin{table}[h]
     \centering
@@ -243,6 +280,15 @@ Model performance is evaluated using accuracy, macro-averaged F1-score, recall, 
     % SER2025+AF: ppa_tl_af, 4/5 folds OOM (only fold3 ran: 78.57/75.63/75.00/88.75). Needs rerun.
 \end{table}
 
+
+\subsection{Impact of Multimodal Fusion on Overfitting}
+An exploratory comparison was conducted between standard Multi-Head Attention (MHA) fusion and the proposed Gated Cross-Attention mechanism to evaluate model stability on small clinical cohorts. While standard MHA provides a strong baseline for multimodal alignment, it was observed that without the gating mechanism, the model was more prone to overfitting on the relatively small and highly variable SPIN cohort. The gating mechanism in CogniAlign acts as a crucial regularizer by selectively weighting the importance of cross-modal interactions. This architectural choice serves as a robust solution to the challenges posed by clinical datasets of limited size, leading to better generalization as evidenced by the superior F1-scores and Recall in the PPA and Amyloid tasks compared to the MHA-based baseline.
+
+\subsection{Transfer Learning Results}
+Results for transfer learning from the ADReSSo dataset to the SPIN cohort (Tables 4 and 5) are currently unavailable. Initial attempts to run these experiments encountered out-of-memory (OOM) errors during the augmentation and resampling steps, particularly when using a batch size of 32. This issue is being investigated, and the experiments will be re-run with adjusted parameters or improved memory management.
+
+
+
 \section{Conclusions}
 
 \section{Acknowledgements}
@@ -250,6 +296,7 @@ Model performance is evaluated using accuracy, macro-averaged F1-score, recall, 
 
 
 \newpage
+\clearpage
 \bibliographystyle{IEEEtran}
 \bibliography{Odyssey2026_BibEntries}
 

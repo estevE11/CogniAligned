@@ -9,13 +9,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from ppa.dataset import get_dataloaders
 from utils import get_config
-from model import CrossAttentionTransformerEncoder, MyTransformerEncoder, BidirectionalCrossAttentionTransformerEncoder, ElementWiseFusionEncoder, MambaFusionEncoder
+from model import CrossAttentionTransformerEncoder, MyTransformerEncoder, BidirectionalCrossAttentionTransformerEncoder, ElementWiseFusionEncoder
 
 def load_model(config, fold, device):
     if config.model.multimodality:
-        if 'mamba' in config.model.fusion:
-            model = MambaFusionEncoder(config.model).to(device)
-        elif 'bicross' in config.model.fusion:
+        if 'bicross' in config.model.fusion:
             model = BidirectionalCrossAttentionTransformerEncoder(config.model).to(device)
         elif 'cross' in config.model.fusion:
             model = CrossAttentionTransformerEncoder(config.model).to(device)

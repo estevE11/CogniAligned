@@ -1,0 +1,30 @@
+{
+  "os":  "Linux-5.15.0-84-generic-x86_64-with-glibc2.35",
+  "python":  "CPython 3.10.12",
+  "startedAt":  "2026-03-16T16:37:54.122758Z",
+  "args":  [
+    "--config",
+    "configs/amyloid/default.yaml"
+  ],
+  "program":  "-m amyloid.main",
+  "git":  {
+    "remote":  "https://github.com/estevE11/CogniAligned",
+    "commit":  "cbfe42a2d5f00eae2fb67e49196d1449ebde7d8c"
+  },
+  "email":  "rogeresteve30@gmail.com",
+  "root":  "/home/usuaris/veussd/roger.esteve.sanchez/CogniAligned/modules",
+  "host":  "veue03",
+  "executable":  "/home/usuaris/veussd/roger.esteve.sanchez/CogniAligned/.venv/bin/python3",
+  "cpu_count":  4,
+  "cpu_count_logical":  4,
+  "disk":  {
+    "/":  {
+      "total":  "19342737408",
+      "used":  "17912184832"
+    }
+  },
+  "memory":  {
+    "total":  "8315248640"
+  },
+  "writerId":  "zblg9z248g25lc0ikqykmduqkqcyz6vx"
+}

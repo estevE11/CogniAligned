@@ -1,0 +1,30 @@
+{
+  "os":  "Linux-5.15.0-84-generic-x86_64-with-glibc2.35",
+  "python":  "CPython 3.10.12",
+  "startedAt":  "2026-03-16T15:46:00.800388Z",
+  "args":  [
+    "--config",
+    "configs/ppa/default.yaml"
+  ],
+  "program":  "-m ppa.main",
+  "git":  {
+    "remote":  "https://github.com/estevE11/CogniAligned",
+    "commit":  "cbfe42a2d5f00eae2fb67e49196d1449ebde7d8c"
+  },
+  "email":  "rogeresteve30@gmail.com",
+  "root":  "/home/usuaris/veussd/roger.esteve.sanchez/CogniAligned/modules",
+  "host":  "veue03",
+  "executable":  "/home/usuaris/veussd/roger.esteve.sanchez/CogniAligned/.venv/bin/python3",
+  "cpu_count":  4,
+  "cpu_count_logical":  4,
+  "disk":  {
+    "/":  {
+      "total":  "19342737408",
+      "used":  "17911283712"
+    }
+  },
+  "memory":  {
+    "total":  "8315248640"
+  },
+  "writerId":  "95vpx7ffmpdzdyjakwjlhtoezy7w16b8"
+}
