@@ -144,76 +144,103 @@ Given the scarcity of labeled data in the target domain (SPIN cohort), we adopt 
 \subsection{Evaluation Details}
 Model performance is evaluated using accuracy, macro-averaged F1-score, recall, and precision. For the binary classification tasks (AD and Amyloid), we also report sensitivity and specificity where applicable. In the SPIN dataset, performance is aggregated across the cross-validation folds. For the ADReSSo challenge, we report results on the held-out test set (or validation set depending on availability).
 
-\section{Results (this section already has the tables, you do not need to write down anything here for now)}
+\section{Results}
+
+\footnotetext[1]{AF = 55 handcrafted acoustic features (temporal, pause, prosodic, voice quality, spectral, cepstral) extracted via Praat and librosa, Z-score normalised, integrated via late fusion before the classifier MLP.}
 
 \begin{table}[h]
     \centering
-    \caption{Adresso challenge}
+    \caption{Results on the ADReSSo IS2021 challenge (binary: AD vs CN).}
     \begin{tabular}{lcccc}
         \toprule
-        \textbf{Model} & \textbf{Accuracy} & \textbf{F1 Score} & \textbf{Recall} & \textbf{Precision} \\
+        \textbf{Model} & \textbf{Acc} & \textbf{F1} & \textbf{Rec} & \textbf{Prec} \\
         \midrule
         Baselines... & & & & \\
-        SER2025      & 81.00 & 83.71 & & \\
-        CogniAlign & 87.20 & 87.10 & 87.32 & 87.14 \\
+        SER2025           & 79.69 & 75.81 & 75.12 & 81.89 \\
+        SER2025 + AF$^1$  & 79.34 & 77.23 & 77.17 & 78.67 \\
+        CogniAlign        & 87.20 & 87.10 & 87.32 & 87.14 \\
+        CogniAlign + AF$^1$ & 87.84 & 87.56 & 87.24 & 88.43 \\
         \bottomrule
     \end{tabular}
+    % SER2025 (no AF): 4/5 folds, fold0 missing. Fold1=86.21/85.77/85.67/86.77, Fold2=81.48/69.32/66.96/89.83, Fold3=76.09/73.56/73.12/76.19, Fold4=75.00/74.58/74.75/74.79
+    % SER2025+AF: 4/5 folds, fold3 missing. Fold0=74.00/72.12/71.67/73.28, Fold1=70.69/67.94/67.97/72.02, Fold2=85.19/81.54/81.92/81.54, Fold4=87.50/87.34/87.12/87.82
+    % CogniAlign+AF (token fusion): job 2397676, done. Fold0=91.18, Fold1=87.88, Fold2=75.76, Fold3=84.38, Fold4=100.0
+    % Old runs (128-dim, different LR): no AF=81.40% acc (job 2396107), +AF=80.72/80.45/81.31/80.41 (job 2397245)
 \end{table}
 
 \begin{table}[h]
     \centering
-    \caption{Betamiloyd binary}
+    \caption{Results on beta-amyloid prediction (binary: positive vs negative), no transfer learning.}
     \begin{tabular}{lcccc}
         \toprule
-        \textbf{Model} & \textbf{Accuracy} & \textbf{F1 Score} & \textbf{Recall} & \textbf{Precision} \\
+        \textbf{Model} & \textbf{Acc} & \textbf{F1} & \textbf{Rec} & \textbf{Prec} \\
         \midrule
         Baselines... & & & & \\
-        SER2025      & 83.90 & & & \\
-        CogniAlign & 79.70 & 78.90 & 78.70 & 79.24 \\
+        SER2025           & 60.22 & 52.12 & 56.46 & 62.32 \\
+        SER2025 + AF$^1$  & 74.22 & 73.26 & 73.56 & 74.63 \\
+        CogniAlign        & 79.70 & 78.90 & 78.70 & 79.24 \\
+        CogniAlign + AF$^1$ & 79.67 & 79.20 & 79.01 & 79.80 \\
         \bottomrule
     \end{tabular}
+    % SER2025 (no AF): 5/5 folds, 256-dim, 40s window. Fold0=58.82/54.92/59.03/63.30, Fold1=64.71/54.23/56.54/61.90, Fold2=57.14/47.22/53.82/61.77, Fold3=68.18/63.19/64.33/71.59, Fold4=46.55/31.68/50.00/23.28. Avg=59.08/50.25/56.74/56.37 (old 60.22 was better)
+    % SER2025+AF: 5/5 folds, 256-dim, 40s window. Fold0=70.59/70.49/70.83/71.05, Fold1=79.41/78.52/79.15/78.21, Fold2=69.05/67.45/68.44/71.47, Fold3=72.73/71.17/70.88/72.80, Fold4=79.31/78.66/78.49/79.64. Avg=74.22/73.26/73.56/74.63 (UPDATED, was 71.46)
+    % CogniAlign+AF (token fusion): job 2397677, done. Fold0=82.35, Fold1=78.79, Fold2=77.14, Fold3=80.65, Fold4=79.41
 \end{table}
 
 \begin{table}[h]
     \centering
-    \caption{Results for PPA Classification (3 classes)}
+    \caption{Results on PPA 3-class classification (lvPPA / nfPPA / svPPA), no transfer learning.}
     \begin{tabular}{lcccc}
         \toprule
-        \textbf{Model} & \textbf{Accuracy} & \textbf{F1 Score} & \textbf{Recall} & \textbf{Precision} \\
+        \textbf{Model} & \textbf{Acc} & \textbf{F1} & \textbf{Rec} & \textbf{Prec} \\
         \midrule
         Baselines... & & & & \\
-        SER2025      & & & & \\
-        CogniAlign & 73.30 & 66.60 & 67.60 & 70.21 \\
+        SER2025           & 67.97 & 48.72 & 51.60 & 47.80 \\
+        SER2025 + AF$^1$  & 73.40 & 58.34 & 62.12 & 59.96 \\
+        CogniAlign        & 73.30 & 66.60 & 67.60 & 70.21 \\
+        CogniAlign + AF$^1$ & 70.75 & 63.05 & 63.37 & 69.60 \\
         \bottomrule
     \end{tabular}
+    % SER2025 (no AF): ad_no_af, 5/5 folds. Fold0=60.87/22.07/29.17/17.75, Fold1=72.50/50.58/49.49/51.97, Fold2=69.57/61.76/63.92/60.03, Fold3=60.71/54.29/56.93/56.75, Fold4=76.19/54.92/58.47/52.51. Avg=67.97/48.72/51.60/47.80 (UPDATED, was 62.63)
+    % SER2025+AF: ppa_af, 4/5 folds (fold0 missing). Fold1=92.50/77.01/77.78/77.40, Fold2=68.97/64.08/62.87/76.16, Fold3=60.71/42.44/55.95/34.40, Fold4=71.43/49.85/51.88/51.88. Avg=73.40/58.34/62.12/59.96
+    % Also ran ad_cv (PPA+AF) 5/5 folds: Avg=71.17/54.93/56.41/60.57 — ppa_af 4/5 folds was better on Acc
+    % CogniAlign+AF (token fusion): job 2397678, done. Fold0=74.36, Fold1=66.67, Fold2=70.73, Fold3=79.49, Fold4=62.50
 \end{table}
 
 \begin{table}[h]
     \centering
-    \caption{Betamiloyd binary transfer learning}
+    \caption{Results on beta-amyloid prediction with transfer learning from ADReSSo.}
     \begin{tabular}{lcccc}
         \toprule
-        \textbf{Model} & \textbf{Accuracy} & \textbf{F1 Score} & \textbf{Recall} & \textbf{Precision} \\
+        \textbf{Model} & \textbf{Acc} & \textbf{F1} & \textbf{Rec} & \textbf{Prec} \\
         \midrule
         Baselines... & & & & \\
-        SER2025      & & & & \\
-        CogniAlign   & & & & \\
+        SER2025           & -- & -- & -- & -- \\
+        SER2025 + AF$^1$  & -- & -- & -- & -- \\
+        CogniAlign        & -- & -- & -- & -- \\
+        CogniAlign + AF$^1$ & -- & -- & -- & -- \\
         \bottomrule
     \end{tabular}
+    % SER2025 (no AF): amyloid_tl_noaf, all 5 folds OOM on augmentation resampling. Needs batch_size or augmentation fix.
+    % SER2025+AF: amyloid_tl_af, all 5 folds OOM on augmentation resampling. Needs batch_size or augmentation fix.
 \end{table}
 
 \begin{table}[h]
     \centering
-    \caption{afasias (c=3) transfer learning}
+    \caption{Results on PPA 3-class classification with transfer learning from ADReSSo.}
     \begin{tabular}{lcccc}
         \toprule
-        \textbf{Model} & \textbf{Accuracy} & \textbf{F1 Score} & \textbf{Recall} & \textbf{Precision} \\
+        \textbf{Model} & \textbf{Acc} & \textbf{F1} & \textbf{Rec} & \textbf{Prec} \\
         \midrule
         Baselines... & & & & \\
-        SER2025      & & & & \\
-        CogniAlign   & & & & \\
+        SER2025           & -- & -- & -- & -- \\
+        SER2025 + AF$^1$  & -- & -- & -- & -- \\
+        CogniAlign        & -- & -- & -- & -- \\
+        CogniAlign + AF$^1$ & -- & -- & -- & -- \\
         \bottomrule
     \end{tabular}
+    % SER2025 (no AF): ppa_tl_noaf, 4/5 folds OOM (only fold2 had no OOM but no results). Needs batch_size or augmentation fix.
+    % SER2025+AF: ppa_tl_af, 4/5 folds OOM (only fold3 ran: 78.57/75.63/75.00/88.75). Needs rerun.
 \end{table}
 
 \section{Conclusions}
