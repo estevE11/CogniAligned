@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers import MambaConfig, MambaModel
 
 
 class AttnPooling(nn.Module):
@@ -623,125 +622,6 @@ class ElementWiseFusionEncoder(nn.Module):
             else:
                 features = torch.cat([af_token, features], dim=1)
                 features = self.af_self_attn(features)
-            acoustic = None
-
-        # Pooling strategy
-        if self.pooling == 'mean':
-            features = features.mean(dim=1)
-        elif self.pooling == 'cls':
-            features = features[:, 0, :]
-
-        return self.classifier(features)
-
-
-class MambaFusionEncoder(nn.Module):
-    def __init__(self, config):
-        """Mamba Encoder."""
-        super(MambaFusionEncoder, self).__init__()
-
-        self.model_name = config.model_name
-        self.fusion = config.fusion
-        self.config = config
-
-        # Set input size based on fusion method
-        input_size = config.hidden_size * 2 if 'concat' in self.fusion else config.hidden_size
-        
-        # Project down to reduce Mamba size and prevent overfitting
-        self.mamba_hidden_size = 128 # You can adjust this value
-        self.input_proj = nn.Sequential(
-            nn.Linear(input_size, self.mamba_hidden_size),
-            nn.Dropout(config.dropout)
-        )
-
-        if 'mel' in self.model_name or 'egemaps' in self.model_name:
-            self.mel_extractor = ResNetAudio(in_channels=1, out_channels=config.hidden_size, dropout=config.dropout)
-        
-        mamba_config = MambaConfig(
-            hidden_size=self.mamba_hidden_size,
-            state_size=16,
-            num_hidden_layers=config.n_layers,
-            expand=2,
-            vocab_size=1, # Fix for 77M unused parameters
-        )
-        self.encoder = MambaModel(mamba_config)
-
-        self.pooling = config.pooling
-        self.dropout = nn.Dropout(config.dropout)
-        
-        classifier_input_size = self.mamba_hidden_size
-
-        self.use_af_token = hasattr(config, 'use_acoustic_features') and config.use_acoustic_features
-        if self.use_af_token:
-            self.acoustic_proj = nn.Sequential(
-                nn.Linear(config.num_acoustic_features, self.mamba_hidden_size),
-                nn.LayerNorm(self.mamba_hidden_size),
-            )
-            self.af_self_attn = nn.TransformerEncoderLayer(
-                d_model=self.mamba_hidden_size,
-                nhead=4,
-                dim_feedforward=self.mamba_hidden_size * 4,
-                dropout=config.dropout,
-                activation='gelu',
-                batch_first=True,
-            )
-
-        self.classifier = nn.Sequential(
-            nn.Dropout(config.dropout),
-            nn.Linear(classifier_input_size, config.hidden_mlp_size),
-            nn.ReLU(),
-            nn.Linear(config.hidden_mlp_size, config.num_classes)
-        )
-
-    def forward(self, features, mask=None, key_padding_mask=None):
-        """Forward pass for multi-layer Mamba encoder."""
-
-        acoustic = None
-        if isinstance(features, (list, tuple)):
-            if len(features) == 3:
-                src, memory, acoustic = features
-            elif len(features) == 2:
-                src, memory = features
-            else:
-                src = features[0]
-                memory = features[0]
-        else:
-            src = features
-            memory = features
-
-        audio_model = self.model_name.split('_')[1] if self.config.audio_model != '' else ''
-
-        if 'mel' == audio_model or 'egemaps' == audio_model:
-            src = self.mel_extractor(src)
-        elif 'mel' == audio_model or 'egemaps' == audio_model:
-            memory = self.mel_extractor(memory)
-
-        fusion_type = self.fusion.replace('mamba', '')
-        if fusion_type == 'concat':
-            features = torch.cat((src, memory), dim=2)
-        elif fusion_type == 'selfattn':
-            src = src.mean(dim=1)
-            memory = memory.mean(dim=1)
-            features = torch.stack((src, memory), dim=1)
-        elif fusion_type == 'mean':
-            features = (src + memory) / 2
-        elif fusion_type == 'sum':
-            features = src + memory
-        elif fusion_type == 'mul':
-            features = src * memory
-        else:
-            features = src + memory
-
-        # Project and apply dropout before Mamba
-        features = self.input_proj(features)
-
-        features = self.encoder(inputs_embeds=features).last_hidden_state
-        features = self.dropout(features)
-
-        # AF-as-token fusion via self-attention
-        if acoustic is not None and self.use_af_token:
-            af_token = self.acoustic_proj(acoustic).unsqueeze(1)
-            features = torch.cat([af_token, features], dim=1)
-            features = self.af_self_attn(features)
             acoustic = None
 
         # Pooling strategy
