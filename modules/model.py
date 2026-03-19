@@ -253,16 +253,17 @@ class CrossAttentionTransformerEncoder(nn.Module):
 
         self.use_af_token = hasattr(config, 'use_acoustic_features') and config.use_acoustic_features
         if self.use_af_token:
-            af_dim = getattr(config, 'af_hidden_size', config.hidden_size)
-            af_nheads = getattr(config, 'af_nheads', config.n_heads)
+            af_dim = config.af_hidden_size if isinstance(config.af_hidden_size, (int, float)) else config.hidden_size
+            af_nheads = config.af_nheads if isinstance(config.af_nheads, (int, float)) else config.n_heads
             self.af_bottleneck = af_dim != config.hidden_size
             self.acoustic_proj = nn.Sequential(
-                nn.Linear(config.num_acoustic_features, af_dim),
-                nn.LayerNorm(af_dim),
+                nn.Linear(int(config.num_acoustic_features), int(af_dim)),
+                nn.LayerNorm(int(af_dim)),
             )
+            print(f"DEBUG: Initialized acoustic_proj with in_features={int(config.num_acoustic_features)}, out_features={int(af_dim)}")
             if self.af_bottleneck:
-                self.af_down_proj = nn.Linear(config.hidden_size, af_dim)
-                self.af_up_proj = nn.Linear(af_dim, config.hidden_size)
+                self.af_down_proj = nn.Linear(int(config.hidden_size), int(af_dim))
+                self.af_up_proj = nn.Linear(int(af_dim), int(config.hidden_size))
             self.af_self_attn = nn.TransformerEncoderLayer(
                 d_model=af_dim,
                 nhead=af_nheads,
@@ -409,16 +410,17 @@ class BidirectionalCrossAttentionTransformerEncoder(nn.Module):
 
         self.use_af_token = hasattr(config, 'use_acoustic_features') and config.use_acoustic_features
         if self.use_af_token:
-            af_dim = getattr(config, 'af_hidden_size', init_mlp_size)
-            af_nheads = getattr(config, 'af_nheads', config.n_heads)
+            af_dim = config.af_hidden_size if isinstance(config.af_hidden_size, (int, float)) else init_mlp_size
+            af_nheads = config.af_nheads if isinstance(config.af_nheads, (int, float)) else config.n_heads
             self.af_bottleneck = af_dim != init_mlp_size
             self.acoustic_proj = nn.Sequential(
-                nn.Linear(config.num_acoustic_features, af_dim),
-                nn.LayerNorm(af_dim),
+                nn.Linear(int(config.num_acoustic_features), int(af_dim)),
+                nn.LayerNorm(int(af_dim)),
             )
+            print(f"DEBUG: Initialized acoustic_proj with in_features={int(config.num_acoustic_features)}, out_features={int(af_dim)}")
             if self.af_bottleneck:
-                self.af_down_proj = nn.Linear(init_mlp_size, af_dim)
-                self.af_up_proj = nn.Linear(af_dim, init_mlp_size)
+                self.af_down_proj = nn.Linear(int(init_mlp_size), int(af_dim))
+                self.af_up_proj = nn.Linear(int(af_dim), int(init_mlp_size))
             self.af_self_attn = nn.TransformerEncoderLayer(
                 d_model=af_dim,
                 nhead=af_nheads,
@@ -547,16 +549,17 @@ class ElementWiseFusionEncoder(nn.Module):
 
         self.use_af_token = hasattr(config, 'use_acoustic_features') and config.use_acoustic_features
         if self.use_af_token:
-            af_dim = getattr(config, 'af_hidden_size', hidden_size)
-            af_nheads = getattr(config, 'af_nheads', config.n_heads)
+            af_dim = config.af_hidden_size if isinstance(config.af_hidden_size, (int, float)) else hidden_size
+            af_nheads = config.af_nheads if isinstance(config.af_nheads, (int, float)) else config.n_heads
             self.af_bottleneck = af_dim != hidden_size
             self.acoustic_proj = nn.Sequential(
-                nn.Linear(config.num_acoustic_features, af_dim),
-                nn.LayerNorm(af_dim),
+                nn.Linear(int(config.num_acoustic_features), int(af_dim)),
+                nn.LayerNorm(int(af_dim)),
             )
+            print(f"DEBUG: Initialized acoustic_proj with in_features={int(config.num_acoustic_features)}, out_features={int(af_dim)}")
             if self.af_bottleneck:
-                self.af_down_proj = nn.Linear(hidden_size, af_dim)
-                self.af_up_proj = nn.Linear(af_dim, hidden_size)
+                self.af_down_proj = nn.Linear(int(hidden_size), int(af_dim))
+                self.af_up_proj = nn.Linear(int(af_dim), int(hidden_size))
             self.af_self_attn = nn.TransformerEncoderLayer(
                 d_model=af_dim,
                 nhead=af_nheads,
@@ -661,16 +664,17 @@ class MyTransformerEncoder(nn.Module):
 
         self.use_af_token = hasattr(config, 'use_acoustic_features') and config.use_acoustic_features
         if self.use_af_token:
-            af_dim = getattr(config, 'af_hidden_size', config.hidden_size)
-            af_nheads = getattr(config, 'af_nheads', config.n_heads)
+            af_dim = config.af_hidden_size if isinstance(config.af_hidden_size, (int, float)) else config.hidden_size
+            af_nheads = config.af_nheads if isinstance(config.af_nheads, (int, float)) else config.n_heads
             self.af_bottleneck = af_dim != config.hidden_size
             self.acoustic_proj = nn.Sequential(
-                nn.Linear(config.num_acoustic_features, af_dim),
-                nn.LayerNorm(af_dim),
+                nn.Linear(int(config.num_acoustic_features), int(af_dim)),
+                nn.LayerNorm(int(af_dim)),
             )
+            print(f"DEBUG: Initialized acoustic_proj with in_features={int(config.num_acoustic_features)}, out_features={int(af_dim)}")
             if self.af_bottleneck:
-                self.af_down_proj = nn.Linear(config.hidden_size, af_dim)
-                self.af_up_proj = nn.Linear(af_dim, config.hidden_size)
+                self.af_down_proj = nn.Linear(int(config.hidden_size), int(af_dim))
+                self.af_up_proj = nn.Linear(int(af_dim), int(config.hidden_size))
             self.af_self_attn = nn.TransformerEncoderLayer(
                 d_model=af_dim,
                 nhead=af_nheads,

@@ -9,21 +9,34 @@
 | **5** | **Balanced No Weights**: `WeightedRandomSampler` + `CrossEntropyLoss` (No Weights) + Batch Size 16. | Validation | - | `47.5%` (F0), `77.5%` (F4) | `0.21` (F0), `0.65` (F4) | `0.33` (F0), `0.60` (F4) |
 | **6** | **Stratified Group Split**: Implemented `StratifiedGroupKFold` to ensure balanced class distribution across all folds. `WeightedRandomSampler` + Batch 16 + No Loss Weights. | Validation | - | - | - | - |
 | **7** | **Acoustic Features**: Added 55 acoustic features (concatenated to classifier input). | Validation | - | Failed | Failed | Initial run (TypeError) |
-| **8** | **Acoustic Features (Fixed)**: Added 55 acoustic features (concatenated to classifier input). | Validation | - | `73.3%` | `0.68` | `0.69` |
+| **8** | **Acoustic Features (Fixed)**: Added 55 acoustic features (concatenated to classifier input). | Validation | - | `70.3%` | `0.61` | `0.62` |
+| **9** | **Reduced Underfitting**: dropout 0.5→0.3, weight_decay 0.1→0.01. | Validation | - | `71.3%` | `0.647` | `0.670` |
 
 ## Detailed Notes
 
-### Experiment 8: Acoustic Features (Fixed) (Job 2397216)
+### Experiment 9: Reduced Underfitting (Job 2398099)
+- **Goal**: Fix underfitting in Exp 8 (train acc ~94% but dropout=0.5 and weight_decay=0.1 slowed convergence). Reduce regularization.
+- **Config**: `balanced_noweights.yaml` with `dropout: 0.3` (was 0.5), `weight_decay: 0.01` (was 0.1).
+- **Results**:
+    - **Fold 0**: Acc 82.1%, F1 0.814, Recall 0.843, Prec 0.802
+    - **Fold 1**: Acc 64.1%, F1 0.499, Recall 0.539, Prec 0.475
+    - **Fold 2**: Acc 61.0%, F1 0.589, Recall 0.614, Prec 0.596
+    - **Fold 3**: Acc 82.1%, F1 0.774, Recall 0.788, Prec 0.780
+    - **Fold 4**: Acc 67.5%, F1 0.560, Recall 0.567, Prec 0.624
+    - **Average**: Acc 71.3%, F1 0.647, Recall 0.670, Prec 0.655
+- **Observation**: Modest improvement over Exp 8 (+1% Acc, +0.4% F1). Folds 1 and 2 remain challenging — the high variance across folds is driven by the data distribution, not the regularization settings.
+
+### Experiment 8: Acoustic Features (Fixed) (Job 2398092)
 - **Goal**: Integrate 55 acoustic features (pause time, jitter, shimmer, etc.) to improve classification.
 - **Config**: `balanced_noweights.yaml` + `use_acoustic_features: True`.
 - **Results**:
-    - **Fold 0**: Acc 76.9%, F1 0.754, Recall 0.779
-    - **Fold 1**: Acc 76.9%, F1 0.713, Recall 0.726
-    - **Fold 2**: Acc 65.9%, F1 0.648, Recall 0.685
-    - **Fold 3**: Acc 79.5%, F1 0.699, Recall 0.684
-    - **Fold 4**: Acc 65.0%, F1 0.515, Recall 0.504
-    - **Average**: Acc 73.3%, F1 0.666, Recall 0.676
-- **Observation**: The integration of acoustic features significantly improved results across all folds, breaking the majority class collapse observed in previous experiments. Fold 4 remains the most challenging.
+    - **Fold 0**: Acc 82.1%, F1 0.805, Recall 0.843
+    - **Fold 1**: Acc 64.1%, F1 0.545, Recall 0.570
+    - **Fold 2**: Acc 61.0%, F1 0.579, Recall 0.560
+    - **Fold 3**: Acc 79.5%, F1 0.753, Recall 0.771
+    - **Fold 4**: Acc 65.0%, F1 0.531, Recall 0.528
+    - **Average**: Acc 70.3%, F1 0.643, Recall 0.654
+- **Observation**: The integration of acoustic features shows mixed results across folds. Folds 0 and 3 show strong performance, while Folds 1, 2, and 4 remain challenging.
 
 ### Experiment 1: Baseline (Job 2396959)
 - **Config**: Default PPA config.

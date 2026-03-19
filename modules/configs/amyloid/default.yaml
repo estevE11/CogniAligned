@@ -1,8 +1,8 @@
 train:
   batch_size: 16
   num_epochs: 100
-  learning_rate: 0.000005
-  weight_decay: 0.1
+  learning_rate: 0.00002
+  weight_decay: 0.01
   early_stopping: True
   early_stopping_patience: 20
   cross_validation: True

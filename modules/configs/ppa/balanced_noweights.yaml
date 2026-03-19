@@ -2,7 +2,7 @@ train:
   batch_size: 16         # Increased to 16 to reduce variance with balanced sampling
   num_epochs: 300
   learning_rate: 0.00001
-  weight_decay: 0.1
+  weight_decay: 0.01
   early_stopping: True
   early_stopping_patience: 25
   cross_validation: True
@@ -12,7 +12,7 @@ train:
 model:
   pooling: 'mean'
   n_layers: 1
-  dropout: 0.5
+  dropout: 0.3
   hidden_size: 768
   intermediate_size: 3072
   n_heads: 12
